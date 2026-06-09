@@ -26,52 +26,54 @@ function getUser(event) {
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return cors({});
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
-    { global: { fetch } }
-  );
+  try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY,
+      { auth: { persistSession: false }, global: { fetch } }
+    );
 
-  const user = getUser(event);
+    const user = getUser(event);
 
-  if (event.httpMethod === 'GET') {
-    const { group, phase } = event.queryStringParameters || {};
-    let query = supabase.from('matches').select('*').order('match_date').order('kickoff_time');
-    if (group) query = query.eq('group_label', group);
-    if (phase) query = query.eq('phase', phase);
+    if (event.httpMethod === 'GET') {
+      const params = event.queryStringParameters || {};
+      let query = supabase.from('matches').select('*').order('match_date').order('kickoff_time');
+      if (params.group) query = query.eq('group_label', params.group);
+      if (params.phase) query = query.eq('phase', params.phase);
 
-    const { data: matches, error } = await query;
-    if (error) return cors({ error: error.message }, 500);
+      const { data: matches, error } = await query;
+      if (error) return cors({ error: error.message }, 500);
 
-    if (user) {
-      const { data: preds } = await supabase
-        .from('predictions')
-        .select('match_id, pred_home, pred_away, points')
-        .eq('user_id', user.id);
-      const predMap = {};
-      (preds || []).forEach(p => { predMap[p.match_id] = p; });
-      return cors(matches.map(m => ({ ...m, my_prediction: predMap[m.id] || null })));
+      if (user) {
+        const { data: preds } = await supabase
+          .from('predictions')
+          .select('match_id, pred_home, pred_away, points')
+          .eq('user_id', user.id);
+        const predMap = {};
+        (preds || []).forEach(p => { predMap[p.match_id] = p; });
+        return cors((matches || []).map(m => ({ ...m, my_prediction: predMap[m.id] || null })));
+      }
+      return cors(matches || []);
     }
-    return cors(matches);
+
+    if (event.httpMethod === 'PUT') {
+      if (!user || user.role !== 'admin') return cors({ error: 'No autorizado' }, 403);
+      const parts = event.path.split('/');
+      const matchId = parseInt(parts[parts.length - 1]);
+      const { result_home, result_away } = JSON.parse(event.body || '{}');
+      if (isNaN(matchId)) return cors({ error: 'ID inválido' }, 400);
+
+      await supabase.from('matches')
+        .update({ result_home, result_away, status: 'finished' })
+        .eq('id', matchId);
+
+      await supabase.rpc('recalculate_points', { p_match_id: matchId });
+      return cors({ ok: true });
+    }
+
+    return cors({ error: 'Method not allowed' }, 405);
+  } catch (err) {
+    console.error('Matches error:', err);
+    return cors({ error: err.message }, 500);
   }
-
-  if (event.httpMethod === 'PUT') {
-    if (!user || user.role !== 'admin') return cors({ error: 'No autorizado' }, 403);
-    const pathParts = event.path.split('/');
-    const matchId = parseInt(pathParts[pathParts.length - 1]);
-    const { result_home, result_away } = JSON.parse(event.body || '{}');
-    if (isNaN(matchId)) return cors({ error: 'ID inválido' }, 400);
-    if (result_home === undefined || result_away === undefined) return cors({ error: 'Faltan datos' }, 400);
-
-    const { error: updateErr } = await supabase
-      .from('matches')
-      .update({ result_home, result_away, status: 'finished' })
-      .eq('id', matchId);
-    if (updateErr) return cors({ error: updateErr.message }, 500);
-
-    await supabase.rpc('recalculate_points', { p_match_id: matchId });
-    return cors({ ok: true, match_id: matchId, result_home, result_away });
-  }
-
-  return cors({ error: 'Method not allowed' }, 405);
 };
