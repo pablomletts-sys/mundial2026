@@ -1,16 +1,8 @@
-// netlify/functions/auth.js
-// Handles: POST /api/auth/register  POST /api/auth/login
-
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY   // service role key — bypasses RLS
-);
-
-const JWT_SECRET = process.env.JWT_SECRET || 'mundial2026-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'mundial2026-secret';
 
 function cors(body, status = 200) {
   return {
@@ -19,7 +11,7 @@ function cors(body, status = 200) {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     },
     body: JSON.stringify(body),
   };
@@ -28,10 +20,15 @@ function cors(body, status = 200) {
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return cors({});
 
-  const path = event.path.replace('/.netlify/functions/auth', '').replace('/api/auth', '');
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY,
+    { global: { fetch } }
+  );
+
+  const path = event.path.replace(/.*\/auth/, '');
   const body = JSON.parse(event.body || '{}');
 
-  // ── REGISTER ──────────────────────────────────────────────
   if (path === '/register' && event.httpMethod === 'POST') {
     const { name, email, password } = body;
     if (!name || !email || !password) return cors({ error: 'Faltan campos' }, 400);
@@ -53,7 +50,6 @@ export const handler = async (event) => {
     return cors({ user: { id: user.id, name: user.name, email: user.email, role: user.role }, token });
   }
 
-  // ── LOGIN ─────────────────────────────────────────────────
   if (path === '/login' && event.httpMethod === 'POST') {
     const { email, password } = body;
     if (!email || !password) return cors({ error: 'Faltan campos' }, 400);
