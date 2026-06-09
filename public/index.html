@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mundial 2026 — Pronósticos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ─── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --pitch:    #081710;
+  --pitch-mid:#0d2a18;
+  --gold:     #f0c040;
+  --gold-dim: #c49a20;
+  --chalk:    #f0efea;
+  --chalk-dim:#8a9088;
+  --card-bg:  #0e1e13;
+  --card-bdr: #1a3020;
+  --red:      #e03030;
+  --blue:     #3070e0;
+  --green:    #2db860;
+  --radius:   6px;
+  --mono:     'JetBrains Mono', monospace;
+  --display:  'Bebas Neue', sans-serif;
+  --body:     'Inter', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  background:var(--pitch);
+  color:var(--chalk);
+  font-family:var(--body);
+  min-height:100vh;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(255,255,255,0.018) 79px,rgba(255,255,255,0.018) 80px),
+    repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(255,255,255,0.018) 79px,rgba(255,255,255,0.018) 80px);
+}
+
+/* ─── TOPBAR ─────────────────────────────────────────────── */
+.topbar{
+  background:rgba(4,12,7,0.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(240,192,64,0.15);
+  padding:0 24px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-family:var(--display);font-size:26px;letter-spacing:3px;color:var(--gold);cursor:pointer}
+.logo span{color:var(--chalk)}
+.nav{display:flex;gap:2px}
+.nav-btn{
+  background:none;border:none;color:var(--chalk-dim);
+  font-family:var(--body);font-size:12px;font-weight:600;
+  padding:6px 13px;border-radius:var(--radius);cursor:pointer;
+  transition:all 0.18s;letter-spacing:0.5px;text-transform:uppercase;
+}
+.nav-btn:hover,.nav-btn.active{background:rgba(240,192,64,0.1);color:var(--gold)}
+.user-area{display:flex;align-items:center;gap:10px}
+.user-chip{
+  background:rgba(240,192,64,0.08);border:1px solid rgba(240,192,64,0.2);
+  color:var(--gold);padding:4px 12px;border-radius:20px;
+  font-size:12px;font-weight:700;letter-spacing:0.5px;
+}
+.btn-sm{
+  background:var(--gold);color:#000;border:none;
+  padding:6px 14px;border-radius:var(--radius);
+  font-weight:700;font-size:12px;cursor:pointer;transition:opacity 0.2s;
+}
+.btn-sm:hover{opacity:0.85}
+.btn-sm.ghost{background:none;border:1px solid rgba(240,192,64,0.35);color:var(--gold)}
+
+/* ─── PAGES ──────────────────────────────────────────────── */
+.page{display:none;padding:28px 24px;max-width:1060px;margin:0 auto}
+.page.active{display:block}
+
+/* ─── AUTH ──────────────────────────────────────────────── */
+.auth-wrap{min-height:calc(100vh - 58px);display:flex;align-items:center;justify-content:center}
+.auth-card{
+  background:var(--card-bg);border:1px solid var(--card-bdr);
+  border-radius:12px;padding:40px;width:100%;max-width:390px;
+}
+.auth-title{font-family:var(--display);font-size:34px;color:var(--gold);letter-spacing:2px;margin-bottom:6px}
+.auth-sub{color:var(--chalk-dim);font-size:13px;margin-bottom:26px;line-height:1.5}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.form-group input{
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--card-bdr);
+  border-radius:var(--radius);color:var(--chalk);font-family:var(--body);
+  font-size:14px;padding:10px 13px;outline:none;transition:border-color 0.2s;
+}
+.form-group input:focus{border-color:var(--gold)}
+.btn-full{
+  width:100%;background:var(--gold);color:#000;border:none;
+  padding:12px;border-radius:var(--radius);font-weight:700;
+  font-size:14px;cursor:pointer;transition:opacity 0.2s;margin-top:6px;
+}
+.btn-full:hover{opacity:0.88}
+.btn-full:disabled{opacity:0.5;cursor:not-allowed}
+.auth-toggle{text-align:center;margin-top:18px;font-size:12px;color:var(--chalk-dim)}
+.auth-toggle a{color:var(--gold);text-decoration:none;font-weight:700;cursor:pointer}
+.error-msg{
+  background:rgba(224,48,48,0.1);border:1px solid rgba(224,48,48,0.25);
+  color:#ff7070;padding:9px 13px;border-radius:var(--radius);
+  font-size:12px;margin-bottom:12px;display:none;
+}
+
+/* ─── SECTION HEADERS ────────────────────────────────────── */
+.section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:22px;border-bottom:1px solid var(--card-bdr);padding-bottom:12px}
+.section-head h2{font-family:var(--display);font-size:30px;letter-spacing:2px;color:var(--gold)}
+.section-head p{font-size:12px;color:var(--chalk-dim)}
+
+/* ─── TABS ───────────────────────────────────────────────── */
+.tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
+.tab{
+  background:rgba(255,255,255,0.03);border:1px solid var(--card-bdr);
+  border-radius:var(--radius);color:var(--chalk-dim);
+  font-size:11px;font-weight:700;padding:5px 13px;cursor:pointer;
+  transition:all 0.15s;text-transform:uppercase;letter-spacing:0.5px;
+}
+.tab:hover,.tab.active{background:rgba(240,192,64,0.1);border-color:rgba(240,192,64,0.25);color:var(--gold)}
+
+/* ─── MATCH CARDS ────────────────────────────────────────── */
+.matches-grid{display:flex;flex-direction:column;gap:6px}
+.match-card{
+  background:var(--card-bg);border:1px solid var(--card-bdr);
+  border-radius:var(--radius);padding:13px 16px;
+  display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;gap:10px;transition:border-color 0.2s;
+}
+.match-card:hover{border-color:rgba(240,192,64,0.15)}
+.match-card.predicted{border-left:3px solid var(--gold)}
+.match-card.finished{background:rgba(14,30,19,0.6)}
+.team{display:flex;align-items:center;gap:9px}
+.team.right{justify-content:flex-end;text-align:right;flex-direction:row-reverse}
+.team-flag{font-size:24px;line-height:1}
+.team-name{font-weight:600;font-size:13px;line-height:1.3}
+.match-center{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:82px}
+.match-time{font-size:10px;color:var(--chalk-dim);font-family:var(--mono)}
+.score-display{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--gold);letter-spacing:3px}
+.score-display.pending{color:var(--chalk-dim);font-size:13px;font-family:var(--body);font-weight:400;letter-spacing:0}
+.live-badge{
+  background:var(--red);color:#fff;font-size:9px;font-weight:700;
+  padding:2px 6px;border-radius:10px;letter-spacing:1px;
+  animation:pulse 1.4s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.pred-inputs{display:flex;gap:5px;align-items:center}
+.pred-input{
+  width:36px;background:rgba(255,255,255,0.05);border:1px solid var(--card-bdr);
+  border-radius:4px;color:var(--chalk);font-family:var(--mono);
+  font-size:16px;font-weight:600;text-align:center;padding:4px;
+  outline:none;transition:border-color 0.2s;
+}
+.pred-input:focus{border-color:var(--gold)}
+.pred-input:disabled{opacity:0.4;cursor:not-allowed}
+.pred-sep{color:var(--chalk-dim);font-family:var(--mono)}
+.save-pred{
+  background:rgba(240,192,64,0.12);border:1px solid rgba(240,192,64,0.25);
+  color:var(--gold);font-size:10px;font-weight:700;
+  padding:4px 9px;border-radius:4px;cursor:pointer;
+  transition:all 0.15s;white-space:nowrap;
+}
+.save-pred:hover{background:rgba(240,192,64,0.22)}
+.save-pred:disabled{opacity:0.4;cursor:not-allowed}
+.pts-badge{
+  font-size:10px;font-weight:700;padding:2px 7px;
+  border-radius:10px;font-family:var(--mono);
+}
+.pts-exact{background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.3);color:var(--gold)}
+.pts-winner{background:rgba(45,184,96,0.15);border:1px solid rgba(45,184,96,0.3);color:var(--green)}
+.pts-diff{background:rgba(48,112,224,0.15);border:1px solid rgba(48,112,224,0.3);color:#70a0ff}
+.pts-0{background:rgba(255,255,255,0.04);border:1px solid var(--card-bdr);color:var(--chalk-dim)}
+.match-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:5px;grid-column:1/-1;flex-wrap:wrap;gap:6px;
+}
+.match-venue{font-size:10px;color:var(--chalk-dim)}
+.my-pred-label{font-size:11px;color:var(--chalk-dim)}
+.my-pred-label b{color:var(--chalk)}
+
+/* ─── HERO ───────────────────────────────────────────────── */
+.hero{
+  background:var(--card-bg);border:1px solid var(--card-bdr);
+  border-radius:10px;padding:30px;margin-bottom:26px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'2026';position:absolute;right:-8px;top:-16px;
+  font-family:var(--display);font-size:140px;
+  color:rgba(240,192,64,0.04);pointer-events:none;line-height:1;
+}
+.hero-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:6px}
+.hero-title{font-family:var(--display);font-size:46px;letter-spacing:3px;line-height:0.95;margin-bottom:14px}
+.hero-title span{color:var(--gold)}
+.hero-stats{display:flex;gap:28px;flex-wrap:wrap}
+.hero-stat-num{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--gold)}
+.hero-stat-label{font-size:10px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:1px}
+
+/* ─── LEADERBOARD ────────────────────────────────────────── */
+.lb-table{width:100%;border-collapse:collapse}
+.lb-table th{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--chalk-dim);padding:10px 14px;text-align:left;
+  border-bottom:1px solid var(--card-bdr);
+}
+.lb-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.lb-table tr:hover td{background:rgba(255,255,255,0.015)}
+.rank-num{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--chalk-dim);width:32px}
+.rank-num.top{color:var(--gold)}
+.avatar{
+  width:30px;height:30px;border-radius:50%;background:var(--pitch-mid);
+  border:1px solid var(--card-bdr);display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700;color:var(--gold);
+}
+.pts-total{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--gold)}
+.pts-label{font-size:9px;color:var(--chalk-dim);text-transform:uppercase}
+.me-row td{background:rgba(240,192,64,0.04)!important}
+
+/* ─── RULES ──────────────────────────────────────────────── */
+.rules-card{background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;padding:24px;margin-bottom:14px}
+.rules-card h3{font-family:var(--display);font-size:20px;color:var(--gold);letter-spacing:1px;margin-bottom:12px}
+.rule-row{display:flex;align-items:flex-start;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.rule-row:last-child{border:none}
+.rule-pts{font-family:var(--mono);font-weight:700;font-size:18px;color:var(--gold);min-width:44px}
+.rule-desc{font-size:13px;color:var(--chalk-dim);line-height:1.5}
+.rule-desc strong{color:var(--chalk)}
+
+/* ─── ADMIN ──────────────────────────────────────────────── */
+.admin-card{background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;padding:20px;margin-bottom:14px}
+.admin-match-row{
+  display:grid;grid-template-columns:1fr auto 1fr auto;
+  gap:10px;align-items:center;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.admin-match-row:last-child{border:none}
+.score-in{
+  width:42px;background:rgba(255,255,255,0.06);border:1px solid var(--card-bdr);
+  border-radius:4px;color:var(--chalk);font-family:var(--mono);
+  font-size:17px;font-weight:600;text-align:center;padding:5px;outline:none;
+}
+.score-in:focus{border-color:var(--gold)}
+.score-wrap{display:flex;align-items:center;gap:5px}
+.save-result{
+  background:var(--green);color:#000;border:none;border-radius:4px;
+  font-weight:700;font-size:11px;padding:6px 11px;cursor:pointer;
+  transition:opacity 0.2s;white-space:nowrap;
+}
+.save-result:hover{opacity:0.8}
+.result-done{font-family:var(--mono);font-size:14px;color:var(--green);font-weight:600}
+
+/* ─── LOADING ────────────────────────────────────────────── */
+.spinner{
+  display:inline-block;width:16px;height:16px;
+  border:2px solid rgba(240,192,64,0.2);border-top-color:var(--gold);
+  border-radius:50%;animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{color:var(--chalk-dim);font-size:13px;display:flex;align-items:center;gap:8px;padding:20px}
+.empty-msg{color:var(--chalk-dim);font-size:13px;padding:24px;text-align:center}
+
+/* ─── TOAST ──────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--gold);color:#000;padding:11px 18px;
+  border-radius:var(--radius);font-weight:700;font-size:13px;
+  transform:translateY(80px);opacity:0;transition:all 0.28s;
+  z-index:999;pointer-events:none;max-width:280px;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error-toast{background:var(--red);color:#fff}
+
+/* ─── PODIUM SECTION ─────────────────────────────────────── */
+.podium-card{
+  background:var(--card-bg);border:1px solid var(--card-bdr);
+  border-radius:10px;padding:22px;margin-bottom:26px;
+}
+.podium-card h3{font-family:var(--display);font-size:20px;color:var(--gold);letter-spacing:1px;margin-bottom:4px}
+.podium-card .sub{font-size:11px;color:var(--chalk-dim);margin-bottom:16px}
+.podium-slots{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.podium-slot label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.podium-slot.gold label{color:var(--gold)}
+.podium-slot.silver label{color:#c0c0c0}
+.podium-slot.bronze label{color:#cd7f32}
+.podium-select{
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--card-bdr);
+  border-radius:var(--radius);color:var(--chalk);font-family:var(--body);
+  font-size:13px;padding:8px 10px;outline:none;
+  appearance:none;cursor:pointer;transition:border-color 0.2s;
+}
+.podium-select:focus{border-color:var(--gold)}
+.podium-select:disabled{opacity:0.5;cursor:not-allowed}
+.podium-locked{
+  background:rgba(240,192,64,0.06);border:1px solid rgba(240,192,64,0.15);
+  border-radius:var(--radius);padding:10px 14px;font-size:13px;
+  display:flex;align-items:center;gap:8px;
+}
+.podium-pts-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.podium-pts-chip{
+  font-size:11px;font-weight:700;padding:3px 9px;
+  border-radius:10px;font-family:var(--mono);
+}
+.podium-pts-chip.earned{background:rgba(45,184,96,0.15);border:1px solid rgba(45,184,96,0.3);color:var(--green)}
+.podium-pts-chip.zero{background:rgba(255,255,255,0.04);border:1px solid var(--card-bdr);color:var(--chalk-dim)}
+@media(max-width:500px){.podium-slots{grid-template-columns:1fr}}
+
+/* ─── MOBILE ─────────────────────────────────────────────── */
+@media(max-width:600px){
+  .topbar{padding:0 12px}
+  .page{padding:18px 12px}
+  .team-name{font-size:11px}
+  .match-card{padding:10px 11px;gap:6px}
+  .hero-title{font-size:32px}
+  .nav-btn .label{display:none}
+  .lb-table td:nth-child(3),.lb-table th:nth-child(3),
+  .lb-table td:nth-child(4),.lb-table th:nth-child(4){display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo" onclick="goPage('home')">MUNDIAL<span>26</span></div>
+  <nav class="nav" id="mainNav" style="display:none">
+    <button class="nav-btn active" onclick="goPage('home')" data-page="home">🏠 <span class="label">Inicio</span></button>
+    <button class="nav-btn" onclick="goPage('fixtures')" data-page="fixtures">⚽ <span class="label">Partidos</span></button>
+    <button class="nav-btn" onclick="goPage('leaderboard')" data-page="leaderboard">🏆 <span class="label">Tabla</span></button>
+    <button class="nav-btn" onclick="goPage('rules')" data-page="rules">📋 <span class="label">Reglas</span></button>
+  </nav>
+  <div class="user-area" id="userArea">
+    <button class="btn-sm" onclick="goPage('auth')">Entrar</button>
+  </div>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ AUTH ══════════════════════════════════════════════ -->
+<div class="page active" id="page-auth">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-title" id="authTitle">BIENVENIDO</div>
+      <div class="auth-sub" id="authSub">Registrate y competí con tus amigos pronosticando el Mundial 2026</div>
+      <div class="error-msg" id="authError"></div>
+      <div id="regFields">
+        <div class="form-group"><label>Nombre completo</label><input type="text" id="regName" placeholder="Diego Hernández" autocomplete="name"></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" id="authEmail" placeholder="tu@email.com" autocomplete="email"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()"></div>
+      <button class="btn-full" id="authBtn" onclick="doAuth()">Crear cuenta</button>
+      <div class="auth-toggle" id="authToggle">¿Ya tenés cuenta? <a onclick="toggleAuth()">Iniciar sesión</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HOME ══════════════════════════════════════════════ -->
+<div class="page" id="page-home">
+  <div class="hero">
+    <div class="hero-eyebrow">🌎 Canadá · México · Estados Unidos</div>
+    <div class="hero-title">COPA DEL<br><span>MUNDO 2026</span></div>
+    <div class="hero-stats">
+      <div><div class="hero-stat-num">48</div><div class="hero-stat-label">Selecciones</div></div>
+      <div><div class="hero-stat-num">104</div><div class="hero-stat-label">Partidos</div></div>
+      <div><div class="hero-stat-num" id="statUsers">—</div><div class="hero-stat-label">Participantes</div></div>
+      <div><div class="hero-stat-num" id="statMyPts">—</div><div class="hero-stat-label">Mis puntos</div></div>
+    </div>
+  </div>
+
+  <!-- PODIUM PREDICTION -->
+  <div id="podiumSection" style="display:none">
+    <div class="section-head"><h2>🥇 PODIO DEL TORNEO</h2><p>Deadline: 11/06/2026 14:00</p></div>
+    <div class="podium-card" id="podiumCard">
+      <div class="loading-msg"><span class="spinner"></span> Cargando…</div>
+    </div>
+  </div>
+
+  <div class="section-head"><h2>PRÓXIMOS PARTIDOS</h2><p>Pronósticos cierran 10 min antes del pitazo</p></div>
+  <div id="homeMatches"><div class="loading-msg"><span class="spinner"></span> Cargando partidos…</div></div>
+
+  <div id="adminSection" style="display:none;margin-top:32px">
+    <div class="section-head"><h2>⚙️ ADMIN — RESULTADOS</h2><p>Registrar resultado final de cada partido</p></div>
+    <div class="admin-card" id="adminPanel"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
+  </div>
+</div>
+
+<!-- ══ FIXTURES ══════════════════════════════════════════ -->
+<div class="page" id="page-fixtures">
+  <div class="section-head"><h2>FIXTURE COMPLETO</h2><p>104 partidos · 11 Jun – 19 Jul 2026</p></div>
+  <div class="tabs" id="groupTabs"></div>
+  <div id="fixtureMatches"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
+</div>
+
+<!-- ══ LEADERBOARD ════════════════════════════════════════ -->
+<div class="page" id="page-leaderboard">
+  <div class="section-head"><h2>TABLA DE POSICIONES</h2><p>Ranking actualizado en tiempo real</p></div>
+  <div style="background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;overflow:hidden">
+    <table class="lb-table">
+      <thead>
+        <tr><th>#</th><th>Jugador</th><th>Exactos</th><th>Ganador</th><th>Puntos</th></tr>
+      </thead>
+      <tbody id="lbBody"><tr><td colspan="5"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ RULES ══════════════════════════════════════════════ -->
+<div class="page" id="page-rules">
+  <div class="section-head"><h2>SISTEMA DE PUNTOS</h2><p>Polla Malazos</p></div>
+  <div class="rules-card">
+    <h3>PARTIDOS</h3>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:var(--gold)">+5</div>
+      <div class="rule-desc"><strong>Selección de ganador</strong> — acertás quién gana (o empate), sin importar el marcador exacto</div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:#70a0ff">+2</div>
+      <div class="rule-desc"><strong>Resultado exacto</strong> — acertás el marcador completo del partido (ej: 2-1). <em>Incluye los 5 pts del ganador.</em></div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:var(--chalk-dim)">+1</div>
+      <div class="rule-desc"><strong>Diferencia de goles</strong> — la diferencia de goles de tu pronóstico coincide con el resultado real (se suma al pts de ganador)</div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:rgba(255,255,255,0.2)">0</div>
+      <div class="rule-desc"><strong>Incorrecto</strong> — el resultado no coincide con tu predicción</div>
+    </div>
+  </div>
+  <div class="rules-card">
+    <h3>PODIO DEL TORNEO</h3>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:var(--gold)">+15</div>
+      <div class="rule-desc"><strong>Campeón</strong> — acertás qué selección gana el Mundial</div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:#c0c0c0">+10</div>
+      <div class="rule-desc"><strong>Subcampeón</strong> — acertás qué selección llega a la final y pierde</div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="color:#cd7f32">+5</div>
+      <div class="rule-desc"><strong>Tercer puesto</strong> — acertás el ganador del partido por el bronce</div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="font-size:16px">⏰</div>
+      <div class="rule-desc">El podio debe pronosticarse <strong>antes del 11/06/2026 a las 14:00</strong> (apertura del torneo). No se puede modificar después.</div>
+    </div>
+  </div>
+  <div class="rules-card">
+    <h3>REGLAS GENERALES</h3>
+    <div class="rule-row"><div class="rule-pts" style="font-size:16px">⏱️</div><div class="rule-desc">Cada pronóstico de partido cierra <strong>10 minutos antes del pitazo inicial</strong>. Una vez cerrado, no se puede cambiar.</div></div>
+    <div class="rule-row"><div class="rule-pts" style="font-size:16px">🔄</div><div class="rule-desc">Los resultados se actualizan automáticamente al finalizar cada partido. Los puntos se calculan al instante para todos.</div></div>
+    <div class="rule-row"><div class="rule-pts" style="font-size:16px">🚫</div><div class="rule-desc"><strong>No hacer trampa.</strong> Regla de grupo.</div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════
+const API = '/api'; // Netlify redirects /api/* → /.netlify/functions/*
+
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
+let currentUser = null;
+let authToken   = null;
+let authMode    = 'register';
+let allMatches  = [];
+let activeGroup = 'A';
+
+const PHASES = ['A','B','C','D','E','F','G','H','I','J','K','L','Octavos','Cuartos','Semifinales','3er Puesto','Final'];
+
+// ══════════════════════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════════════════════
+function loadSession() {
+  try {
+    const s = localStorage.getItem('m26_session');
+    if (!s) return;
+    const { user, token } = JSON.parse(s);
+    currentUser = user;
+    authToken   = token;
+  } catch {}
+}
+function saveSession() {
+  localStorage.setItem('m26_session', JSON.stringify({ user: currentUser, token: authToken }));
+}
+function clearSession() {
+  localStorage.removeItem('m26_session');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// API HELPERS
+// ══════════════════════════════════════════════════════════════════
+async function apiFetch(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  const res = await fetch(API + path, { ...opts, headers: { ...headers, ...(opts.headers||{}) } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
+  return data;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════════
+function toggleAuth() {
+  authMode = authMode === 'register' ? 'login' : 'register';
+  const r = authMode === 'register';
+  document.getElementById('authTitle').textContent  = r ? 'BIENVENIDO' : 'INGRESAR';
+  document.getElementById('authSub').textContent    = r ? 'Registrate y competí pronosticando el Mundial 2026' : 'Ingresá a tu cuenta';
+  document.getElementById('authBtn').textContent    = r ? 'Crear cuenta' : 'Iniciar sesión';
+  document.getElementById('regFields').style.display = r ? '' : 'none';
+  document.getElementById('authToggle').innerHTML   = r
+    ? '¿Ya tenés cuenta? <a onclick="toggleAuth()">Iniciar sesión</a>'
+    : '¿No tenés cuenta? <a onclick="toggleAuth()">Registrarse</a>';
+  document.getElementById('authError').style.display = 'none';
+}
+
+async function doAuth() {
+  const btn = document.getElementById('authBtn');
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const email = document.getElementById('authEmail').value.trim();
+    const pass  = document.getElementById('authPass').value;
+    if (!email || !pass) throw new Error('Completá todos los campos');
+
+    let data;
+    if (authMode === 'register') {
+      const name = document.getElementById('regName').value.trim();
+      if (!name) throw new Error('Ingresá tu nombre');
+      data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password: pass }) });
+    } else {
+      data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password: pass }) });
+    }
+
+    currentUser = data.user;
+    authToken   = data.token;
+    saveSession();
+    onLogin();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = authMode === 'register' ? 'Crear cuenta' : 'Iniciar sesión';
+  }
+}
+
+function onLogin() {
+  document.getElementById('mainNav').style.display = 'flex';
+  document.getElementById('userArea').innerHTML = `
+    <div class="user-chip">⚽ ${currentUser.name.split(' ')[0]}</div>
+    <button class="btn-sm ghost" onclick="doLogout()">Salir</button>`;
+  if (currentUser.role === 'admin') document.getElementById('adminSection').style.display = 'block';
+  goPage('home');
+  toast('¡Bienvenido, ' + currentUser.name.split(' ')[0] + '! 🏆');
+}
+
+function doLogout() {
+  currentUser = null; authToken = null;
+  clearSession();
+  document.getElementById('mainNav').style.display = 'none';
+  document.getElementById('userArea').innerHTML = `<button class="btn-sm" onclick="goPage('auth')">Entrar</button>`;
+  document.getElementById('adminSection').style.display = 'none';
+  allMatches = [];
+  goPage('auth');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════
+function goPage(name) {
+  if (!currentUser && name !== 'auth') { goPage('auth'); return; }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'home')        renderHome();
+  if (name === 'fixtures')    renderFixtures(activeGroup);
+  if (name === 'leaderboard') renderLeaderboard();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATA FETCH
+// ══════════════════════════════════════════════════════════════════
+async function fetchMatches() {
+  allMatches = await apiFetch('/matches');
+  return allMatches;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════
+function getFlag(s) { return s.split(' ')[0]; }
+function getName(s) { return s.replace(/^\S+\s/, ''); }
+
+function fmtDate(dateStr) {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
+function canPredict(m) {
+  if (m.status === 'finished' || m.status === 'live') return false;
+  return true; // server double-checks
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MATCH CARD HTML
+// ══════════════════════════════════════════════════════════════════
+function matchCardHTML(m) {
+  const pred    = m.my_prediction;
+  const done    = m.status === 'finished';
+  const live    = m.status === 'live';
+  const open    = canPredict(m);
+  const pts     = pred && done ? pred.points : null;
+
+  // Scoring: 2=exact, 5=winner, 5+1=winner+goaldiff, 0=miss
+  let ptsHtml = '';
+  if (pts !== null) {
+    if (pts === 2)      ptsHtml = `<span class="pts-badge pts-exact">⚡ Exacto +2</span>`;
+    else if (pts === 6) ptsHtml = `<span class="pts-badge pts-winner">✓ Ganador+Diff +6</span>`;
+    else if (pts === 5) ptsHtml = `<span class="pts-badge pts-winner">✓ Ganador +5</span>`;
+    else if (pts === 1) ptsHtml = `<span class="pts-badge pts-diff">~ Diff +1</span>`;
+    else                ptsHtml = `<span class="pts-badge pts-0">✗ 0 pts</span>`;
+  }
+
+  const scoreHtml = done || live
+    ? `<div class="score-display">${m.result_home ?? '?'} – ${m.result_away ?? '?'}</div>`
+    : `<div class="score-display pending">vs</div>`;
+
+  const predControls = open
+    ? `<div class="pred-inputs">
+        <span style="font-size:10px;color:var(--chalk-dim)">Tu pronóstico:</span>
+        <input class="pred-input" id="ph${m.id}" type="number" min="0" max="30" value="${pred ? pred.pred_home : ''}" placeholder="0">
+        <span class="pred-sep">–</span>
+        <input class="pred-input" id="pa${m.id}" type="number" min="0" max="30" value="${pred ? pred.pred_away : ''}" placeholder="0">
+        <button class="save-pred" onclick="savePred(${m.id})" id="spbtn${m.id}">Guardar</button>
+       </div>`
+    : (pred
+        ? `<div class="my-pred-label">Pronóstico: <b>${pred.pred_home}–${pred.pred_away}</b></div>`
+        : `<div style="font-size:10px;color:var(--chalk-dim)">⏰ Pronóstico cerrado</div>`);
+
+  return `
+  <div class="match-card ${pred ? 'predicted' : ''} ${done ? 'finished' : ''}" id="mc${m.id}">
+    <div class="team">
+      <div class="team-flag">${getFlag(m.home)}</div>
+      <div class="team-name">${getName(m.home)}</div>
+    </div>
+    <div class="match-center">
+      ${live ? '<span class="live-badge">EN VIVO</span>' : `<div class="match-time">${fmtDate(m.match_date)}${m.kickoff_time ? ' · ' + m.kickoff_time : ''}</div>`}
+      ${scoreHtml}
+      ${ptsHtml}
+    </div>
+    <div class="team right">
+      <div class="team-flag">${getFlag(m.away)}</div>
+      <div class="team-name">${getName(m.away)}</div>
+    </div>
+    <div class="match-meta">
+      <div class="match-venue">📍 ${m.venue || ''}</div>
+      ${predControls}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════════════════════════════
+async function renderHome() {
+  document.getElementById('homeMatches').innerHTML = '<div class="loading-msg"><span class="spinner"></span> Cargando partidos…</div>';
+  document.getElementById('podiumSection').style.display = 'block';
+
+  try {
+    const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
+
+    const finished = matches.filter(m => m.status === 'finished').slice(-4).reverse();
+    const upcoming = matches.filter(m => m.status !== 'finished').slice(0, 8);
+    document.getElementById('homeMatches').innerHTML = [...finished, ...upcoming].length
+      ? [...finished, ...upcoming].map(matchCardHTML).join('')
+      : '<div class="empty-msg">Los partidos del Mundial comienzan el 11 de junio 🏆</div>';
+
+    document.getElementById('statUsers').textContent = lb.length;
+    const me = lb.find(r => r.email === currentUser.email);
+    document.getElementById('statMyPts').textContent = me ? me.total_points : 0;
+
+    await renderPodium();
+    if (currentUser.role === 'admin') renderAdmin(matches);
+
+  } catch (e) {
+    document.getElementById('homeMatches').innerHTML = `<div class="empty-msg">Error: ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FIXTURES
+// ══════════════════════════════════════════════════════════════════
+async function renderFixtures(group) {
+  activeGroup = group;
+  document.getElementById('groupTabs').innerHTML = PHASES.map(p =>
+    `<div class="tab ${p === group ? 'active' : ''}" onclick="renderFixtures('${p}')">${p}</div>`
+  ).join('');
+
+  document.getElementById('fixtureMatches').innerHTML = '<div class="loading-msg"><span class="spinner"></span> Cargando…</div>';
+  try {
+    const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+    const matches = await apiFetch(
+      GROUPS.includes(group)
+        ? `/matches?group=${group}`
+        : `/matches?phase=${encodeURIComponent(group)}`
+    );
+    // Merge predictions if not already there
+    document.getElementById('fixtureMatches').innerHTML = matches.length
+      ? matches.map(matchCardHTML).join('')
+      : '<div class="empty-msg">No hay partidos en esta fase todavía</div>';
+  } catch(e) {
+    document.getElementById('fixtureMatches').innerHTML = `<div class="empty-msg">Error: ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PREDICTIONS
+// ══════════════════════════════════════════════════════════════════
+async function savePred(matchId) {
+  const btn = document.getElementById('spbtn' + matchId);
+  const h   = parseInt(document.getElementById('ph' + matchId).value);
+  const a   = parseInt(document.getElementById('pa' + matchId).value);
+  if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { toast('Ingresá un marcador válido ⚠️', true); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    await apiFetch('/predictions', {
+      method: 'POST',
+      body: JSON.stringify({ match_id: matchId, pred_home: h, pred_away: a })
+    });
+    toast(`Pronóstico guardado: ${h}–${a} ✅`);
+    // Mark card as predicted
+    const card = document.getElementById('mc' + matchId);
+    if (card) card.classList.add('predicted');
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardado ✓'; }
+  } catch(e) {
+    toast(e.message, true);
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════════════════════════════════
+async function renderLeaderboard() {
+  document.getElementById('lbBody').innerHTML = '<tr><td colspan="5"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></td></tr>';
+  try {
+    const lb = await apiFetch('/leaderboard');
+    document.getElementById('lbBody').innerHTML = lb.length
+      ? lb.map((u, i) => `
+        <tr class="${u.email === currentUser.email ? 'me-row' : ''}">
+          <td><div class="rank-num ${i < 3 ? 'top' : ''}">${i + 1}</div></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:9px">
+              <div class="avatar">${u.name[0].toUpperCase()}</div>
+              <div>
+                <div style="font-weight:600;font-size:13px">${u.name}${u.email === currentUser.email ? ' <span style="color:var(--gold);font-size:10px">tú</span>' : ''}</div>
+                <div style="font-size:10px;color:var(--chalk-dim)">${u.predicted} pronósticos · 🏆 ${u.podium_champion ? u.podium_champion.replace(/^\S+\s/,'') : '—'}</div>
+              </div>
+            </div>
+          </td>
+          <td><span style="font-family:var(--mono);color:var(--gold)" title="Exactos (2pts)">⚡${u.exact}</span></td>
+          <td><span style="font-family:var(--mono);color:var(--green)" title="Ganador (5pts)">✓${u.winner_only}</span></td>
+          <td>
+            <div class="pts-total">${u.total_points}</div>
+            <div class="pts-label">${u.podium_points > 0 ? `incl. +${u.podium_points} podio` : 'pts'}</div>
+          </td>
+        </tr>`).join('')
+      : '<tr><td colspan="5"><div class="empty-msg">Aún no hay pronósticos registrados</div></td></tr>';
+  } catch(e) {
+    document.getElementById('lbBody').innerHTML = `<tr><td colspan="5"><div class="empty-msg">Error: ${e.message}</div></td></tr>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════════════════════════
+function renderAdmin(matches) {
+  const pending = matches.filter(m => m.status !== 'finished');
+  if (!pending.length) {
+    document.getElementById('adminPanel').innerHTML = '<div class="empty-msg">Todos los partidos tienen resultado registrado ✓</div>';
+    return;
+  }
+  document.getElementById('adminPanel').innerHTML = pending.slice(0, 20).map(m => `
+    <div class="admin-match-row" id="ar${m.id}">
+      <div style="font-size:12px;font-weight:600">${getFlag(m.home)} ${getName(m.home)}</div>
+      <div class="score-wrap">
+        <input class="score-in" id="ah${m.id}" type="number" min="0" max="30" placeholder="0">
+        <span style="color:var(--chalk-dim);font-family:var(--mono)">–</span>
+        <input class="score-in" id="aa${m.id}" type="number" min="0" max="30" placeholder="0">
+      </div>
+      <div style="font-size:12px;font-weight:600;text-align:right">${getName(m.away)} ${getFlag(m.away)}</div>
+      <button class="save-result" onclick="saveResult(${m.id})">Registrar</button>
+    </div>`).join('');
+}
+
+async function saveResult(matchId) {
+  const h = parseInt(document.getElementById('ah' + matchId).value);
+  const a = parseInt(document.getElementById('aa' + matchId).value);
+  if (isNaN(h) || isNaN(a)) { toast('Ingresá el resultado ⚠️', true); return; }
+  try {
+    await apiFetch('/matches/' + matchId, {
+      method: 'PUT',
+      body: JSON.stringify({ result_home: h, result_away: a })
+    });
+    toast(`Resultado ${h}–${a} registrado ✅ — puntos recalculados`);
+    const row = document.getElementById('ar' + matchId);
+    if (row) row.innerHTML = `<div style="grid-column:1/-1;color:var(--green);font-size:12px;padding:4px 0">✓ Resultado registrado: ${h}–${a}</div>`;
+  } catch(e) { toast(e.message, true); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PODIUM PREDICTION
+// ══════════════════════════════════════════════════════════════════
+const PODIUM_DEADLINE = new Date('2026-06-11T19:00:00Z'); // 14:00 ET
+
+const ALL_TEAMS = [
+  '🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 Chequia',
+  '🇺🇸 Estados Unidos','🇵🇦 Panamá','🇧🇼 Botswana','🇳🇿 Nueva Zelanda',
+  '🇨🇦 Canadá','🇭🇷 Croacia','🇲🇦 Marruecos','🇧🇪 Bélgica',
+  '🇧🇷 Brasil','🇯🇵 Japón','🇵🇾 Paraguay','🇹🇿 Tanzania',
+  '🇩🇪 Alemania','🇸🇰 Eslovaquia','🇦🇺 Australia','🇹🇭 Tailandia',
+  '🇵🇹 Portugal','🇹🇷 Turquía','🇨🇼 Curaçao','🇸🇱 Sierra Leona',
+  '🇦🇷 Argentina','🇨🇱 Chile','🇸🇩 Sudán','🇵🇭 Filipinas',
+  '🇪🇸 España','🇯🇴 Jordania','🇨🇩 Congo','🇺🇾 Uruguay',
+  '🇫🇷 Francia','🇷🇸 Serbia','🇹🇳 Túnez','🇲🇱 Mali',
+  '🇬🇧 Inglaterra','🇸🇳 Senegal','🇨🇴 Colombia','🇭🇰 Hong Kong',
+  '🇳🇱 Países Bajos','🇿🇲 Zambia','🇮🇩 Indonesia','🇨🇫 Rep. Centroafricana',
+  '🇮🇹 Italia','🇸🇦 Arabia Saudita','🇪🇨 Ecuador','🇺🇿 Uzbekistán',
+];
+
+function teamOptions(selected = '') {
+  return ALL_TEAMS.map(t =>
+    `<option value="${t}" ${t === selected ? 'selected' : ''}>${t}</option>`
+  ).join('');
+}
+
+async function renderPodium() {
+  const card = document.getElementById('podiumCard');
+  const past = new Date() >= PODIUM_DEADLINE;
+
+  let myPodium = null;
+  try { myPodium = await apiFetch('/predictions/podium'); } catch {}
+
+  if (myPodium && past) {
+    // Show saved + points if resolved
+    const c = myPodium.pts_champion > 0;
+    const r = myPodium.pts_runner_up > 0;
+    const t = myPodium.pts_third > 0;
+    card.innerHTML = `
+      <h3>TU PODIO</h3>
+      <div class="sub">Deadline cerrado · ${past ? 'Pronóstico bloqueado' : 'Podés editar hasta el 11/06'}</div>
+      <div class="podium-slots">
+        <div class="podium-slot gold"><label>🥇 CAMPEÓN</label>
+          <div class="podium-locked">${myPodium.champion}</div></div>
+        <div class="podium-slot silver"><label>🥈 SUBCAMPEÓN</label>
+          <div class="podium-locked">${myPodium.runner_up}</div></div>
+        <div class="podium-slot bronze"><label>🥉 TERCER PUESTO</label>
+          <div class="podium-locked">${myPodium.third_place}</div></div>
+      </div>
+      <div class="podium-pts-row">
+        <span class="podium-pts-chip ${c ? 'earned' : 'zero'}">${c ? '✓' : '✗'} Campeón ${c ? '+15' : '0'}</span>
+        <span class="podium-pts-chip ${r ? 'earned' : 'zero'}">${r ? '✓' : '✗'} Subcampeón ${r ? '+10' : '0'}</span>
+        <span class="podium-pts-chip ${t ? 'earned' : 'zero'}">${t ? '✓' : '✗'} 3er puesto ${t ? '+5' : '0'}</span>
+      </div>`;
+    return;
+  }
+
+  if (past && !myPodium) {
+    card.innerHTML = `<h3>PODIO DEL TORNEO</h3><div class="sub">El deadline ya pasó. No registraste tu podio.</div>`;
+    return;
+  }
+
+  // Show editable form
+  card.innerHTML = `
+    <h3>PRONOSTICÁ EL PODIO</h3>
+    <div class="sub">15 + 10 + 5 pts · Deadline: 11/06/2026 14:00 · ${myPodium ? 'Ya guardado — podés modificar' : 'Sin guardar aún'}</div>
+    <div class="podium-slots">
+      <div class="podium-slot gold">
+        <label>🥇 CAMPEÓN · 15 pts</label>
+        <select class="podium-select" id="podChamp">
+          <option value="">— Elegir equipo —</option>
+          ${teamOptions(myPodium?.champion)}
+        </select>
+      </div>
+      <div class="podium-slot silver">
+        <label>🥈 SUBCAMPEÓN · 10 pts</label>
+        <select class="podium-select" id="podRunner">
+          <option value="">— Elegir equipo —</option>
+          ${teamOptions(myPodium?.runner_up)}
+        </select>
+      </div>
+      <div class="podium-slot bronze">
+        <label>🥉 TERCER PUESTO · 5 pts</label>
+        <select class="podium-select" id="podThird">
+          <option value="">— Elegir equipo —</option>
+          ${teamOptions(myPodium?.third_place)}
+        </select>
+      </div>
+    </div>
+    <button class="btn-sm" id="savePodiumBtn" onclick="savePodium()" style="margin-top:4px">
+      ${myPodium ? 'Actualizar podio' : 'Guardar podio'}
+    </button>`;
+}
+
+async function savePodium() {
+  const champion    = document.getElementById('podChamp').value;
+  const runner_up   = document.getElementById('podRunner').value;
+  const third_place = document.getElementById('podThird').value;
+  const btn = document.getElementById('savePodiumBtn');
+
+  if (!champion || !runner_up || !third_place) { toast('Seleccioná los 3 equipos del podio ⚠️', true); return; }
+  if (new Set([champion, runner_up, third_place]).size < 3) { toast('Los 3 equipos deben ser distintos ⚠️', true); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    await apiFetch('/predictions/podium', { method: 'POST', body: JSON.stringify({ champion, runner_up, third_place }) });
+    toast('Podio guardado 🏆');
+    await renderPodium();
+  } catch(e) {
+    toast(e.message, true);
+    btn.disabled = false; btn.textContent = 'Guardar podio';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.toggle('error-toast', isError);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+loadSession();
+if (currentUser && authToken) {
+  onLogin();
+}
+</script>
+</body>
+</html>
