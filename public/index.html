@@ -340,7 +340,7 @@ body{
   <div class="auth-wrap">
     <div class="auth-card">
       <div class="auth-title" id="authTitle">BIENVENIDO</div>
-      <div class="auth-sub" id="authSub">Registrate y competí con tus malazos pronosticando el Mundial 2026</div>
+      <div class="auth-sub" id="authSub">Regístrate y compite con tus malazos en el pronóstico del Mundial 2026</div>
       <div class="error-msg" id="authError"></div>
       <div id="regFields">
         <div class="form-group"><label>Nombre completo</label><input type="text" id="regName" placeholder="Diego Hernández" autocomplete="name"></div>
@@ -348,7 +348,7 @@ body{
       <div class="form-group"><label>Email</label><input type="email" id="authEmail" placeholder="tu@email.com" autocomplete="email"></div>
       <div class="form-group"><label>Contraseña</label><input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()"></div>
       <button class="btn-full" id="authBtn" onclick="doAuth()">Crear cuenta</button>
-      <div class="auth-toggle" id="authToggle">¿Ya tenés cuenta? <a onclick="toggleAuth()">Iniciar sesión</a></div>
+      <div class="auth-toggle" id="authToggle">¿Ya tienes cuenta? <a onclick="toggleAuth()">Iniciar sesión</a></div>
     </div>
   </div>
 </div>
@@ -374,7 +374,7 @@ body{
     </div>
   </div>
 
-  <div class="section-head"><h2>PRÓXIMOS PARTIDOS</h2><p>Pronósticos cierran 10 min antes del pitazo</p></div>
+  <div class="section-head"><h2>PRÓXIMOS PARTIDOS</h2><p>Pronósticos cierran 10 min antes del partido</p></div>
   <div id="homeMatches"><div class="loading-msg"><span class="spinner"></span> Cargando partidos…</div></div>
 
   <div id="adminSection" style="display:none;margin-top:32px">
@@ -405,50 +405,54 @@ body{
 
 <!-- ══ RULES ══════════════════════════════════════════════ -->
 <div class="page" id="page-rules">
-  <div class="section-head"><h2>SISTEMA DE PUNTOS</h2><p>Polla Malazos</p></div>
+  <div class="section-head"><h2>SISTEMA DE PUNTOS</h2><p>Polla Malazos · Mundial 2026</p></div>
   <div class="rules-card">
-    <h3>PARTIDOS</h3>
+    <h3>POR PARTIDO</h3>
     <div class="rule-row">
       <div class="rule-pts" style="color:var(--gold)">+5</div>
-      <div class="rule-desc"><strong>Selección de ganador</strong> — acertás quién gana (o empate), sin importar el marcador exacto</div>
+      <div class="rule-desc"><strong>Ganador correcto</strong> — acertaste quién gana el partido o si fue empate, sin importar el marcador exacto</div>
     </div>
     <div class="rule-row">
       <div class="rule-pts" style="color:#70a0ff">+2</div>
-      <div class="rule-desc"><strong>Resultado exacto</strong> — acertás el marcador completo del partido (ej: 2-1). <em>Incluye los 5 pts del ganador.</em></div>
+      <div class="rule-desc"><strong>Marcador exacto</strong> — acertaste el resultado completo (ej: 2-1). Ya incluye los 5 pts del ganador, o sea en total son 7 pts</div>
     </div>
     <div class="rule-row">
       <div class="rule-pts" style="color:var(--chalk-dim)">+1</div>
-      <div class="rule-desc"><strong>Diferencia de goles</strong> — la diferencia de goles de tu pronóstico coincide con el resultado real (se suma al pts de ganador)</div>
+      <div class="rule-desc"><strong>Diferencia de goles</strong> — la diferencia de tu pronóstico es igual a la del resultado real (se suma encima del pts de ganador)</div>
     </div>
     <div class="rule-row">
       <div class="rule-pts" style="color:rgba(255,255,255,0.2)">0</div>
-      <div class="rule-desc"><strong>Incorrecto</strong> — el resultado no coincide con tu predicción</div>
+      <div class="rule-desc"><strong>Error</strong> — tu pronóstico no coincide con el resultado</div>
+    </div>
+    <div class="rule-row">
+      <div class="rule-pts" style="font-size:16px">⚽</div>
+      <div class="rule-desc"><strong>Solo cuentan los 90 minutos reglamentarios.</strong> No se toman en cuenta los goles de tiempo extra ni los penales. Si el partido va a penales, el resultado oficial para la polla es el del minuto 90 (o 120 si hubo tiempo extra, pero sin contar los penales).</div>
     </div>
   </div>
   <div class="rules-card">
     <h3>PODIO DEL TORNEO</h3>
     <div class="rule-row">
       <div class="rule-pts" style="color:var(--gold)">+15</div>
-      <div class="rule-desc"><strong>Campeón</strong> — acertás qué selección gana el Mundial</div>
+      <div class="rule-desc"><strong>Campeón</strong> — acertaste qué selección gana el Mundial</div>
     </div>
     <div class="rule-row">
       <div class="rule-pts" style="color:#c0c0c0">+10</div>
-      <div class="rule-desc"><strong>Subcampeón</strong> — acertás qué selección llega a la final y pierde</div>
+      <div class="rule-desc"><strong>Subcampeón</strong> — acertaste qué selección llega a la final y pierde</div>
     </div>
     <div class="rule-row">
       <div class="rule-pts" style="color:#cd7f32">+5</div>
-      <div class="rule-desc"><strong>Tercer puesto</strong> — acertás el ganador del partido por el bronce</div>
+      <div class="rule-desc"><strong>Tercer puesto</strong> — acertaste quién gana el partido por el bronce</div>
     </div>
     <div class="rule-row">
       <div class="rule-pts" style="font-size:16px">⏰</div>
-      <div class="rule-desc">El podio debe pronosticarse <strong>antes del 11/06/2026 a las 14:00</strong> (apertura del torneo). No se puede modificar después.</div>
+      <div class="rule-desc">El podio hay que pronosticarlo <strong>antes del 11/06/2026 a las 14:00 hrs</strong> (inicio del torneo). Después ya no se puede cambiar.</div>
     </div>
   </div>
   <div class="rules-card">
     <h3>REGLAS GENERALES</h3>
-    <div class="rule-row"><div class="rule-pts" style="font-size:16px">⏱️</div><div class="rule-desc">Cada pronóstico de partido cierra <strong>10 minutos antes del pitazo inicial</strong>. Una vez cerrado, no se puede cambiar.</div></div>
-    <div class="rule-row"><div class="rule-pts" style="font-size:16px">🔄</div><div class="rule-desc">Los resultados se actualizan automáticamente al finalizar cada partido. Los puntos se calculan al instante para todos.</div></div>
-    <div class="rule-row"><div class="rule-pts" style="font-size:16px">🚫</div><div class="rule-desc"><strong>No hacer trampa.</strong> Regla de grupo.</div></div>
+    <div class="rule-row"><div class="rule-pts" style="font-size:16px">⏱️</div><div class="rule-desc">Los pronósticos de cada partido cierran <strong>10 minutos antes del pitazo inicial</strong>. Una vez cerrado no se puede cambiar.</div></div>
+    <div class="rule-row"><div class="rule-pts" style="font-size:16px">🔄</div><div class="rule-desc">Los resultados se actualizan solos al terminar cada partido. Los puntos se calculan al toque para todos.</div></div>
+    <div class="rule-row"><div class="rule-pts" style="font-size:16px">🚫</div><div class="rule-desc"><strong>Nada de trampas.</strong> Regla de grupo.</div></div>
   </div>
 </div>
 
@@ -507,12 +511,12 @@ function toggleAuth() {
   authMode = authMode === 'register' ? 'login' : 'register';
   const r = authMode === 'register';
   document.getElementById('authTitle').textContent  = r ? 'BIENVENIDO' : 'INGRESAR';
-  document.getElementById('authSub').textContent    = r ? 'Registrate y competí con tus malazos pronosticando el Mundial 2026' : 'Ingresá a tu cuenta';
+  document.getElementById('authSub').textContent    = r ? 'Regístrate y compite con tus malazos en el pronóstico del Mundial 2026' : 'Ingresa a tu cuenta';
   document.getElementById('authBtn').textContent    = r ? 'Crear cuenta' : 'Iniciar sesión';
   document.getElementById('regFields').style.display = r ? '' : 'none';
   document.getElementById('authToggle').innerHTML   = r
-    ? '¿Ya tenés cuenta? <a onclick="toggleAuth()">Iniciar sesión</a>'
-    : '¿No tenés cuenta? <a onclick="toggleAuth()">Registrarse</a>';
+    ? '¿Ya tienes cuenta? <a onclick="toggleAuth()">Iniciar sesión</a>'
+    : '¿No tienes cuenta? <a onclick="toggleAuth()">Registrarse</a>';
   document.getElementById('authError').style.display = 'none';
 }
 
@@ -531,7 +535,7 @@ async function doAuth() {
     let data;
     if (authMode === 'register') {
       const name = document.getElementById('regName').value.trim();
-      if (!name) throw new Error('Ingresá tu nombre');
+      if (!name) throw new Error('Escribe tu nombre');
       data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password: pass }) });
     } else {
       data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email, password: pass }) });
@@ -640,7 +644,7 @@ function matchCardHTML(m) {
        </div>`
     : (pred
         ? `<div class="my-pred-label">Pronóstico: <b>${pred.pred_home}–${pred.pred_away}</b></div>`
-        : `<div style="font-size:10px;color:var(--chalk-dim)">⏰ Pronóstico cerrado</div>`);
+        : `<div style="font-size:10px;color:var(--chalk-dim)">⏰ Cerrado</div>`);
 
   return `
   <div class="match-card ${pred ? 'predicted' : ''} ${done ? 'finished' : ''}" id="mc${m.id}">
@@ -678,7 +682,7 @@ async function renderHome() {
     const upcoming = matches.filter(m => m.status !== 'finished').slice(0, 8);
     document.getElementById('homeMatches').innerHTML = [...finished, ...upcoming].length
       ? [...finished, ...upcoming].map(matchCardHTML).join('')
-      : '<div class="empty-msg">Los partidos del Mundial comienzan el 11 de junio 🏆</div>';
+      : '<div class="empty-msg">Los partidos empiezan el 11 de junio 🏆</div>';
 
     document.getElementById('statUsers').textContent = lb.length;
     const me = lb.find(r => r.email === currentUser.email);
@@ -725,7 +729,7 @@ async function savePred(matchId) {
   const btn = document.getElementById('spbtn' + matchId);
   const h   = parseInt(document.getElementById('ph' + matchId).value);
   const a   = parseInt(document.getElementById('pa' + matchId).value);
-  if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { toast('Ingresá un marcador válido ⚠️', true); return; }
+  if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { toast('Ingresa un marcador válido ⚠️', true); return; }
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
   try {
     await apiFetch('/predictions', {
@@ -770,7 +774,7 @@ async function renderLeaderboard() {
             <div class="pts-label">${u.podium_points > 0 ? `incl. +${u.podium_points} podio` : 'pts'}</div>
           </td>
         </tr>`).join('')
-      : '<tr><td colspan="5"><div class="empty-msg">Aún no hay pronósticos registrados</div></td></tr>';
+      : '<tr><td colspan="5"><div class="empty-msg">Todavía no hay pronósticos registrados</div></td></tr>';
   } catch(e) {
     document.getElementById('lbBody').innerHTML = `<tr><td colspan="5"><div class="empty-msg">Error: ${e.message}</div></td></tr>`;
   }
@@ -801,7 +805,7 @@ function renderAdmin(matches) {
 async function saveResult(matchId) {
   const h = parseInt(document.getElementById('ah' + matchId).value);
   const a = parseInt(document.getElementById('aa' + matchId).value);
-  if (isNaN(h) || isNaN(a)) { toast('Ingresá el resultado ⚠️', true); return; }
+  if (isNaN(h) || isNaN(a)) { toast('Ingresa el resultado ⚠️', true); return; }
   try {
     await apiFetch('/matches/' + matchId, {
       method: 'PUT',
@@ -891,7 +895,7 @@ async function renderPodium() {
   // Show editable form
   card.innerHTML = `
     <h3>PRONOSTICÁ EL PODIO</h3>
-    <div class="sub">15 + 10 + 5 pts · Deadline: 11/06/2026 14:00 · ${myPodium ? 'Ya guardado — podés modificar' : 'Sin guardar aún'}</div>
+    <div class="sub">15 + 10 + 5 pts · Deadline: 11/06/2026 14:00 · ${myPodium ? 'Ya guardado — puedes modificar' : 'Sin guardar aún'}</div>
     <div class="podium-slots">
       <div class="podium-slot gold">
         <label>🥇 CAMPEÓN · 15 pts</label>
