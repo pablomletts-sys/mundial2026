@@ -331,6 +331,41 @@ body{
 .podium-pts-chip.zero{background:rgba(255,255,255,0.04);border:1px solid var(--card-bdr);color:var(--chalk-dim)}
 @media(max-width:500px){.podium-slots{grid-template-columns:1fr}}
 
+
+/* ─── MINI LEADERBOARD ───────────────────────────────────── */
+.mini-lb-row{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,0.03);border:1px solid var(--card-bdr);
+  border-radius:var(--radius);padding:10px 14px;
+  transition:background 0.15s;
+}
+.mini-lb-row:hover{background:rgba(255,255,255,0.05)}
+.mini-lb-row.me{border-color:rgba(240,192,64,0.3);background:rgba(240,192,64,0.04)}
+.mini-rank{font-family:var(--mono);font-size:15px;font-weight:700;min-width:24px;color:var(--chalk-dim)}
+.mini-rank.top{color:var(--gold)}
+.mini-avatar{width:28px;height:28px;border-radius:50%;background:var(--pitch-mid);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);border:1px solid var(--card-bdr);flex-shrink:0}
+.mini-name{font-size:13px;font-weight:600;flex:1}
+.mini-pts{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold)}
+.mini-pts-label{font-size:9px;color:var(--chalk-dim);text-transform:uppercase}
+
+/* ─── ODDS BAR ───────────────────────────────────────────── */
+.odds-row{display:flex;align-items:center;gap:0;margin-top:8px;border-radius:4px;overflow:hidden;height:6px}
+.odds-home{background:var(--gold);height:100%;transition:width 0.5s}
+.odds-draw{background:var(--chalk-dim);height:100%;transition:width 0.5s}
+.odds-away{background:#70a0ff;height:100%;transition:width 0.5s}
+.odds-labels{display:flex;justify-content:space-between;margin-top:4px}
+.odds-label{font-size:9px;color:var(--chalk-dim);font-family:var(--mono)}
+.odds-label.home{color:var(--gold)}
+.odds-label.away{color:#70a0ff}
+
+/* ─── MY PICKS STATS ─────────────────────────────────────── */
+.my-stat-card{
+  background:var(--card-bg);border:1px solid var(--card-bdr);
+  border-radius:10px;padding:16px;text-align:center;
+}
+.my-stat-num{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--gold)}
+.my-stat-label{font-size:10px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+
 /* ─── MOBILE ─────────────────────────────────────────────── */
 @media(max-width:600px){
   .topbar{padding:0 12px}
@@ -353,6 +388,7 @@ body{
     <button class="nav-btn active" onclick="goPage('home')" data-page="home">🏠 <span class="label">Inicio</span></button>
     <button class="nav-btn" onclick="goPage('fixtures')" data-page="fixtures">⚽ <span class="label">Partidos</span></button>
     <button class="nav-btn" onclick="goPage('leaderboard')" data-page="leaderboard">🏆 <span class="label">Tabla</span></button>
+    <button class="nav-btn" onclick="goPage('mispicks')" data-page="mispicks">👤 <span class="label">Mis picks</span></button>
     <button class="nav-btn" onclick="goPage('rules')" data-page="rules">📋 <span class="label">Reglas</span></button>
   </nav>
   <div class="user-area" id="userArea">
@@ -394,6 +430,29 @@ body{
   </div>
 
   <!-- PODIUM PREDICTION -->
+  <!-- MINI LEADERBOARD -->
+  <div id="miniLbSection" style="margin-bottom:24px">
+    <div class="section-head" style="margin-bottom:14px">
+      <h2>🏆 RANKING</h2>
+      <p>Top participantes</p>
+      <button onclick="goPage('leaderboard')" style="margin-left:auto;background:none;border:1px solid var(--card-bdr);color:var(--chalk-dim);font-size:11px;padding:4px 12px;border-radius:var(--radius);cursor:pointer;font-family:var(--body)">Ver todo →</button>
+    </div>
+    <div id="miniLb" style="display:grid;gap:6px"></div>
+  </div>
+
+  <!-- INVITE BANNER -->
+  <div id="inviteBanner" style="background:rgba(240,192,64,0.06);border:1px solid rgba(240,192,64,0.15);border-radius:10px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-family:var(--display);font-size:18px;letter-spacing:1px;color:var(--gold)">INVITA A TUS MALAZOS</div>
+      <div style="font-size:12px;color:var(--chalk-dim);margin-top:2px">Comparte el link y que todos pronostiquen</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="inviteLink" readonly style="background:rgba(0,0,0,0.3);border:1px solid var(--card-bdr);border-radius:var(--radius);color:var(--chalk-dim);font-family:var(--mono);font-size:11px;padding:6px 10px;width:220px;outline:none">
+      <button onclick="copyInvite()" style="background:var(--gold);color:#000;border:none;border-radius:var(--radius);font-weight:700;font-size:12px;padding:7px 14px;cursor:pointer">Copiar</button>
+      <button onclick="shareWhatsApp()" style="background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-weight:700;font-size:12px;padding:7px 14px;cursor:pointer">WhatsApp</button>
+    </div>
+  </div>
+
   <div id="podiumSection" style="display:none">
     <div class="section-head"><h2>🥇 PODIO DEL TORNEO</h2><p>Deadline: 11/06/2026 14:00</p></div>
     <div class="podium-card" id="podiumCard">
@@ -428,6 +487,16 @@ body{
       <tbody id="lbBody"><tr><td colspan="5"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></td></tr></tbody>
     </table>
   </div>
+</div>
+
+<!-- ══ MIS PICKS ═══════════════════════════════════════════ -->
+<div class="page" id="page-mispicks">
+  <div class="section-head"><h2>MIS PICKS</h2><p>Todos tus pronósticos y puntos</p></div>
+  <!-- Stats row -->
+  <div id="myStatsRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px"></div>
+  <!-- Picks list -->
+  <div class="section-head" style="margin-bottom:14px"><h2>PARTIDOS</h2></div>
+  <div class="matches-grid" id="myPicksGrid"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
 </div>
 
 <!-- ══ RULES ══════════════════════════════════════════════ -->
@@ -612,6 +681,7 @@ function goPage(name) {
   if (name === 'home')        renderHome();
   if (name === 'fixtures')    renderFixtures(activeGroup);
   if (name === 'leaderboard') renderLeaderboard();
+  if (name === 'mispicks')    renderMisPicks();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -728,7 +798,7 @@ async function renderHome() {
   try {
     const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
 
-    // Deduplicate by id, separar terminados y próximos sin solapar
+    // Deduplicar
     const seen = new Set();
     const finished = matches
       .filter(m => m.status === 'finished' && !seen.has(m.id) && seen.add(m.id))
@@ -740,17 +810,40 @@ async function renderHome() {
     const show = [...finished, ...upcoming];
     document.getElementById('homeMatches').innerHTML = show.length
       ? show.map(matchCardHTML).join('')
-      : '<div class="empty-msg">Los partidos empiezan el 11 de junio 🏆</div>';
+      : '<div class="empty-msg" style="grid-column:1/-1">Los partidos empiezan el 11 de junio 🏆</div>';
 
+    // Hero stats
     document.getElementById('statUsers').textContent = lb.length;
     const me = lb.find(r => r.email === currentUser.email);
     document.getElementById('statMyPts').textContent = me ? me.total_points : 0;
 
+    // Mini leaderboard
+    const top5 = lb.slice(0, 5);
+    document.getElementById('miniLb').innerHTML = top5.map((u, i) => `
+      <div class="mini-lb-row ${u.email === currentUser.email ? 'me' : ''}">
+        <div class="mini-rank ${i < 3 ? 'top' : ''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)}</div>
+        <div class="mini-avatar">${u.name[0].toUpperCase()}</div>
+        <div class="mini-name">${u.name.split(' ')[0]}${u.email === currentUser.email ? ' <span style="color:var(--gold);font-size:10px">(tú)</span>' : ''}</div>
+        <div style="text-align:right">
+          <div class="mini-pts">${u.total_points}</div>
+          <div class="mini-pts-label">pts</div>
+        </div>
+      </div>`).join('') || '<div class="empty-msg">Nadie ha pronosticado aún</div>';
+
+    // Invite link
+    initInvite();
+
+    // Podium
     await renderPodium();
+
+    // Admin
     if (currentUser.role === 'admin') renderAdmin(matches);
 
+    // Odds — async, no bloquea el render
+    enrichWithOdds(matches);
+
   } catch (e) {
-    document.getElementById('homeMatches').innerHTML = `<div class="empty-msg">Error: ${e.message}</div>`;
+    document.getElementById('homeMatches').innerHTML = `<div class="empty-msg" style="grid-column:1/-1">Error: ${e.message}</div>`;
   }
 }
 
@@ -999,6 +1092,188 @@ async function savePodium() {
   } catch(e) {
     toast(e.message, true);
     btn.disabled = false; btn.textContent = 'Guardar podio';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MINI LEADERBOARD (home)
+// ══════════════════════════════════════════════════════════════════
+async function renderMiniLeaderboard() {
+  try {
+    const lb = await apiFetch('/leaderboard');
+    const top5 = lb.slice(0, 5);
+    document.getElementById('miniLb').innerHTML = top5.map((u, i) => `
+      <div class="mini-lb-row ${u.email === currentUser.email ? 'me' : ''}">
+        <div class="mini-rank ${i < 3 ? 'top' : ''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)}</div>
+        <div class="mini-avatar">${u.name[0].toUpperCase()}</div>
+        <div class="mini-name">${u.name.split(' ')[0]}${u.email === currentUser.email ? ' <span style="color:var(--gold);font-size:10px">(tú)</span>' : ''}</div>
+        <div style="text-align:right">
+          <div class="mini-pts">${u.total_points}</div>
+          <div class="mini-pts-label">pts</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('miniLb error:', e); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INVITE / SHARE
+// ══════════════════════════════════════════════════════════════════
+function initInvite() {
+  const url = window.location.origin;
+  document.getElementById('inviteLink').value = url;
+}
+
+function copyInvite() {
+  const link = document.getElementById('inviteLink').value;
+  navigator.clipboard.writeText(link).then(() => toast('¡Link copiado! 🔗'));
+}
+
+function shareWhatsApp() {
+  const link = document.getElementById('inviteLink').value;
+  const msg = encodeURIComponent(`🏆 ¡Únete a la Polla Malazos del Mundial 2026!\nPronóstica los partidos y gana puntos.\n${link}`);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ODDS DE APUESTAS (The Odds API — gratis, agrega Bet365, DraftKings, etc.)
+// Usamos implied probability de las cuotas decimales
+// ══════════════════════════════════════════════════════════════════
+const oddsCache = {};
+
+async function fetchOdds(matchId, homeTeam, awayTeam) {
+  if (oddsCache[matchId]) return oddsCache[matchId];
+
+  try {
+    // The Odds API — sport_key para FIFA World Cup es 'soccer_fifa_world_cup'
+    const ODDS_KEY = 'b0da31702b1614ef847d55c0cd7ddc7f'; // free tier: 500 req/mes
+    const res = await fetch(
+      `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds/?apiKey=${ODDS_KEY}&regions=eu&markets=h2h&oddsFormat=decimal`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    // Normalizar nombre para matching
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
+    const hn = norm(homeTeam), an = norm(awayTeam);
+
+    const event = data.find(e => {
+      const h = norm(e.home_team), a = norm(e.away_team);
+      return (h.includes(hn.slice(0,5)) || hn.includes(h.slice(0,5))) &&
+             (a.includes(an.slice(0,5)) || an.includes(a.slice(0,5)));
+    });
+
+    if (!event || !event.bookmakers.length) return null;
+
+    // Usar el primer bookmaker disponible (Bet365 si existe, si no el primero)
+    const bm = event.bookmakers.find(b => b.key === 'bet365') || event.bookmakers[0];
+    const h2h = bm.markets.find(m => m.key === 'h2h');
+    if (!h2h) return null;
+
+    const outcomes = h2h.outcomes;
+    const homeOdd = outcomes.find(o => norm(o.name).includes(hn.slice(0,4)))?.price;
+    const awayOdd = outcomes.find(o => norm(o.name).includes(an.slice(0,4)))?.price;
+    const drawOdd = outcomes.find(o => norm(o.name) === 'draw')?.price;
+
+    if (!homeOdd || !awayOdd) return null;
+
+    // Convertir cuotas decimales a probabilidades implícitas
+    const pHome = homeOdd ? 1/homeOdd : 0;
+    const pDraw = drawOdd ? 1/drawOdd : 0;
+    const pAway = awayOdd ? 1/awayOdd : 0;
+    const total = pHome + pDraw + pAway;
+
+    const result = {
+      home:  Math.round(pHome/total*100),
+      draw:  Math.round(pDraw/total*100),
+      away:  Math.round(pAway/total*100),
+      source: bm.title
+    };
+    oddsCache[matchId] = result;
+    return result;
+  } catch(e) {
+    return null;
+  }
+}
+
+function oddsHTML(odds, homeName, awayName) {
+  if (!odds) return '';
+  return `
+    <div style="margin-top:8px;grid-column:1/-1">
+      <div style="font-size:9px;color:var(--chalk-dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px">
+        Prob. según casa de apuestas · ${odds.source}
+      </div>
+      <div class="odds-row">
+        <div class="odds-home" style="width:${odds.home}%"></div>
+        <div class="odds-draw" style="width:${odds.draw}%"></div>
+        <div class="odds-away" style="width:${odds.away}%"></div>
+      </div>
+      <div class="odds-labels">
+        <span class="odds-label home">${getName(homeName)} ${odds.home}%</span>
+        <span class="odds-label">Empate ${odds.draw}%</span>
+        <span class="odds-label away">${odds.away}% ${getName(awayName)}</span>
+      </div>
+    </div>`;
+}
+
+// Enriquecer cards con odds después de renderizar
+async function enrichWithOdds(matches) {
+  const upcoming = matches.filter(m => m.status === 'scheduled').slice(0, 6);
+  for (const m of upcoming) {
+    const card = document.getElementById('mc' + m.id);
+    if (!card) continue;
+    const odds = await fetchOdds(m.id, m.home, m.away);
+    if (!odds) continue;
+    const footer = card.querySelector('.mc-footer');
+    if (footer) {
+      const oddsEl = document.createElement('div');
+      oddsEl.style.cssText = 'width:100%;margin-top:4px';
+      oddsEl.innerHTML = oddsHTML(odds, m.home, m.away);
+      footer.appendChild(oddsEl);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MIS PICKS PAGE
+// ══════════════════════════════════════════════════════════════════
+async function renderMisPicks() {
+  document.getElementById('myPicksGrid').innerHTML = '<div class="loading-msg"><span class="spinner"></span> Cargando…</div>';
+  document.getElementById('myStatsRow').innerHTML = '';
+
+  try {
+    const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
+    const me = lb.find(u => u.email === currentUser.email);
+
+    // Stats cards
+    document.getElementById('myStatsRow').innerHTML = `
+      <div class="my-stat-card">
+        <div class="my-stat-num">${me?.total_points ?? 0}</div>
+        <div class="my-stat-label">Puntos totales</div>
+      </div>
+      <div class="my-stat-card">
+        <div class="my-stat-num">${me?.exact ?? 0}</div>
+        <div class="my-stat-label">Exactos ⚡</div>
+      </div>
+      <div class="my-stat-card">
+        <div class="my-stat-num">${me?.winner_only ?? 0}</div>
+        <div class="my-stat-label">Ganadores ✓</div>
+      </div>
+      <div class="my-stat-card">
+        <div class="my-stat-num">${me ? (lb.indexOf(me) + 1) : '—'}</div>
+        <div class="my-stat-label">Posición 🏆</div>
+      </div>`;
+
+    // Solo partidos donde pronostiqué o ya terminaron
+    const myMatches = matches.filter(m => m.my_prediction || m.status === 'finished');
+
+    if (!myMatches.length) {
+      document.getElementById('myPicksGrid').innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Aún no tienes pronósticos registrados. ¡Empieza ya!</div>';
+      return;
+    }
+
+    document.getElementById('myPicksGrid').innerHTML = myMatches.map(matchCardHTML).join('');
+  } catch(e) {
+    document.getElementById('myPicksGrid').innerHTML = `<div class="empty-msg" style="grid-column:1/-1">Error: ${e.message}</div>`;
   }
 }
 
