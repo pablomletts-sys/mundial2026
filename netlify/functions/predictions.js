@@ -44,10 +44,10 @@ export const handler = async (event) => {
       }
       if (event.httpMethod === 'POST') {
         if (new Date() >= PODIUM_DEADLINE)
-          return cors({ error: 'El deadline para el podio fue el 11/06/2026 a las 14:00' }, 400);
+          return cors({ error: 'El plazo para el pronóstico del podio venció el 11/06/2026 a las 14:00 hrs' }, 400);
         const { champion, runner_up, third_place } = JSON.parse(event.body || '{}');
-        if (!champion || !runner_up || !third_place) return cors({ error: 'Seleccioná los 3 equipos' }, 400);
-        if (new Set([champion, runner_up, third_place]).size < 3) return cors({ error: 'Los 3 equipos deben ser distintos' }, 400);
+        if (!champion || !runner_up || !third_place) return cors({ error: 'Selecciona los 3 equipos del podio' }, 400);
+        if (new Set([champion, runner_up, third_place]).size < 3) return cors({ error: 'Los 3 equipos tienen que ser distintos' }, 400);
         const { error } = await supabase.from('podium_predictions')
           .upsert({ user_id: user.id, champion, runner_up, third_place, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
         if (error) return cors({ error: error.message }, 500);
@@ -70,13 +70,13 @@ export const handler = async (event) => {
         .from('matches').select('id, match_date, kickoff_time, status').eq('id', match_id).maybeSingle();
       if (!match) return cors({ error: 'Partido no encontrado' }, 404);
       if (match.status === 'finished' || match.status === 'live')
-        return cors({ error: 'El partido ya empezó — pronóstico cerrado' }, 400);
+        return cors({ error: 'El partido ya empezó, el pronóstico está cerrado' }, 400);
 
       if (match.kickoff_time) {
         const deadline = new Date(`${match.match_date}T${match.kickoff_time}:00`);
         deadline.setMinutes(deadline.getMinutes() - 10);
         if (new Date() >= deadline)
-          return cors({ error: 'Pronóstico cerrado — faltan menos de 10 minutos' }, 400);
+          return cors({ error: 'Pronóstico cerrado — faltan menos de 10 minutos para el inicio' }, 400);
       }
 
       const { error } = await supabase.from('predictions')
