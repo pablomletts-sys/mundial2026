@@ -818,19 +818,32 @@ async function saveResult(matchId) {
 // ══════════════════════════════════════════════════════════════════
 const PODIUM_DEADLINE = new Date('2026-06-11T19:00:00Z'); // 14:00 ET
 
+// Grupos reales del Mundial 2026 (draw Dic 2025, playoffs Mar 2026)
+// A: México, Sudáfrica, Corea del Sur, Chequia
+// B: Canadá, Bosnia-Herzegovina, Qatar, Suiza
+// C: Brasil, Marruecos, Haití, Escocia
+// D: Estados Unidos, Paraguay, Australia, Turquía
+// E: Alemania, Curazao, Costa de Marfil, Ecuador
+// F: Países Bajos, Japón, Suecia, Túnez
+// G: Bélgica, Egipto, Irán, Nueva Zelanda
+// H: España, Cabo Verde, Arabia Saudita, Uruguay
+// I: Francia, Senegal, Irak, Noruega
+// J: Argentina, Argelia, Austria, Jordania
+// K: Portugal, DR Congo, Uzbekistán, Colombia
+// L: Inglaterra, Croacia, Ghana, Panamá
 const ALL_TEAMS = [
   '🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 Chequia',
-  '🇺🇸 Estados Unidos','🇵🇦 Panamá','🇧🇼 Botswana','🇳🇿 Nueva Zelanda',
-  '🇨🇦 Canadá','🇭🇷 Croacia','🇲🇦 Marruecos','🇧🇪 Bélgica',
-  '🇧🇷 Brasil','🇯🇵 Japón','🇵🇾 Paraguay','🇹🇿 Tanzania',
-  '🇩🇪 Alemania','🇸🇰 Eslovaquia','🇦🇺 Australia','🇹🇭 Tailandia',
-  '🇵🇹 Portugal','🇹🇷 Turquía','🇨🇼 Curaçao','🇸🇱 Sierra Leona',
-  '🇦🇷 Argentina','🇨🇱 Chile','🇸🇩 Sudán','🇵🇭 Filipinas',
-  '🇪🇸 España','🇯🇴 Jordania','🇨🇩 Congo','🇺🇾 Uruguay',
-  '🇫🇷 Francia','🇷🇸 Serbia','🇹🇳 Túnez','🇲🇱 Mali',
-  '🇬🇧 Inglaterra','🇸🇳 Senegal','🇨🇴 Colombia','🇭🇰 Hong Kong',
-  '🇳🇱 Países Bajos','🇿🇲 Zambia','🇮🇩 Indonesia','🇨🇫 Rep. Centroafricana',
-  '🇮🇹 Italia','🇸🇦 Arabia Saudita','🇪🇨 Ecuador','🇺🇿 Uzbekistán',
+  '🇨🇦 Canadá','🇧🇦 Bosnia-Herzegovina','🇶🇦 Qatar','🇨🇭 Suiza',
+  '🇧🇷 Brasil','🇲🇦 Marruecos','🇭🇹 Haití','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia',
+  '🇺🇸 Estados Unidos','🇵🇾 Paraguay','🇦🇺 Australia','🇹🇷 Turquía',
+  '🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador',
+  '🇳🇱 Países Bajos','🇯🇵 Japón','🇸🇪 Suecia','🇹🇳 Túnez',
+  '🇧🇪 Bélgica','🇪🇬 Egipto','🇮🇷 Irán','🇳🇿 Nueva Zelanda',
+  '🇪🇸 España','🇨🇻 Cabo Verde','🇸🇦 Arabia Saudita','🇺🇾 Uruguay',
+  '🇫🇷 Francia','🇸🇳 Senegal','🇮🇶 Irak','🇳🇴 Noruega',
+  '🇦🇷 Argentina','🇩🇿 Argelia','🇦🇹 Austria','🇯🇴 Jordania',
+  '🇵🇹 Portugal','🇨🇩 DR Congo','🇺🇿 Uzbekistán','🇨🇴 Colombia',
+  '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇬🇭 Ghana','🇵🇦 Panamá',
 ];
 
 function teamOptions(selected = '') {
