@@ -274,7 +274,9 @@ body{
 .save-result:hover{opacity:0.8}
 .result-done{font-family:var(--mono);font-size:14px;color:var(--green);font-weight:600}
 
-/* ─── LOADING ────────────────────────────────────────────── */
+/* loading y empty msgs ocupan toda la fila en la grilla */
+.matches-grid .loading-msg,
+.matches-grid .empty-msg { grid-column: 1 / -1; }
 .spinner{
   display:inline-block;width:16px;height:16px;
   border:2px solid rgba(240,192,64,0.2);border-top-color:var(--gold);
@@ -400,7 +402,7 @@ body{
   </div>
 
   <div class="section-head"><h2>PRÓXIMOS PARTIDOS</h2><p>Pronósticos cierran 10 min antes del partido</p></div>
-  <div id="homeMatches"><div class="loading-msg"><span class="spinner"></span> Cargando partidos…</div></div>
+  <div class="matches-grid" id="homeMatches"><div class="loading-msg"><span class="spinner"></span> Cargando partidos…</div></div>
 
   <div id="adminSection" style="display:none;margin-top:32px">
     <div class="section-head"><h2>⚙️ ADMIN — RESULTADOS</h2><p>Registrar resultado final de cada partido</p></div>
@@ -412,7 +414,7 @@ body{
 <div class="page" id="page-fixtures">
   <div class="section-head"><h2>FIXTURE COMPLETO</h2><p>104 partidos · 11 Jun – 19 Jul 2026</p></div>
   <div class="tabs" id="groupTabs"></div>
-  <div id="fixtureMatches"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
+  <div class="matches-grid" id="fixtureMatches"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
 </div>
 
 <!-- ══ LEADERBOARD ════════════════════════════════════════ -->
@@ -726,10 +728,18 @@ async function renderHome() {
   try {
     const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
 
-    const finished = matches.filter(m => m.status === 'finished').slice(-4).reverse();
-    const upcoming = matches.filter(m => m.status !== 'finished').slice(0, 8);
-    document.getElementById('homeMatches').innerHTML = [...finished, ...upcoming].length
-      ? [...finished, ...upcoming].map(matchCardHTML).join('')
+    // Deduplicate by id, separar terminados y próximos sin solapar
+    const seen = new Set();
+    const finished = matches
+      .filter(m => m.status === 'finished' && !seen.has(m.id) && seen.add(m.id))
+      .slice(-6).reverse();
+    const upcoming = matches
+      .filter(m => m.status !== 'finished' && !seen.has(m.id) && seen.add(m.id))
+      .slice(0, 9);
+
+    const show = [...finished, ...upcoming];
+    document.getElementById('homeMatches').innerHTML = show.length
+      ? show.map(matchCardHTML).join('')
       : '<div class="empty-msg">Los partidos empiezan el 11 de junio 🏆</div>';
 
     document.getElementById('statUsers').textContent = lb.length;
