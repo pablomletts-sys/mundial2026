@@ -1,9 +1,4 @@
-// netlify/functions/leaderboard.js
-// GET /api/leaderboard
-
 import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 function cors(body, status = 200) {
   return {
@@ -21,6 +16,12 @@ function cors(body, status = 200) {
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return cors({});
   if (event.httpMethod !== 'GET') return cors({ error: 'Method not allowed' }, 405);
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY,
+    { realtime: { transport: 'websocket' }, global: { fetch } }
+  );
 
   const { data, error } = await supabase
     .from('leaderboard')
