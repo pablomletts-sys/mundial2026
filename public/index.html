@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mundial 2026 — Pronósticos</title>
+<title>Polla Malazos — Mundial 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -46,7 +46,7 @@ body{
   display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:100;
 }
-.logo{font-family:var(--display);font-size:26px;letter-spacing:3px;color:var(--gold);cursor:pointer}
+.logo{font-family:var(--display);font-size:20px;letter-spacing:2px;color:var(--gold);cursor:pointer}
 .logo span{color:var(--chalk)}
 .nav{display:flex;gap:2px}
 .nav-btn{
@@ -321,7 +321,7 @@ body{
 
 <!-- TOPBAR -->
 <header class="topbar">
-  <div class="logo" onclick="goPage('home')">MUNDIAL<span>26</span></div>
+  <div class="logo" onclick="goPage('home')">POLLA<span>MALAZOS</span></div>
   <nav class="nav" id="mainNav" style="display:none">
     <button class="nav-btn active" onclick="goPage('home')" data-page="home">🏠 <span class="label">Inicio</span></button>
     <button class="nav-btn" onclick="goPage('fixtures')" data-page="fixtures">⚽ <span class="label">Partidos</span></button>
@@ -340,7 +340,7 @@ body{
   <div class="auth-wrap">
     <div class="auth-card">
       <div class="auth-title" id="authTitle">BIENVENIDO</div>
-      <div class="auth-sub" id="authSub">Registrate y competí con tus amigos pronosticando el Mundial 2026</div>
+      <div class="auth-sub" id="authSub">Registrate y competí con tus malazos pronosticando el Mundial 2026</div>
       <div class="error-msg" id="authError"></div>
       <div id="regFields">
         <div class="form-group"><label>Nombre completo</label><input type="text" id="regName" placeholder="Diego Hernández" autocomplete="name"></div>
@@ -357,7 +357,7 @@ body{
 <div class="page" id="page-home">
   <div class="hero">
     <div class="hero-eyebrow">🌎 Canadá · México · Estados Unidos</div>
-    <div class="hero-title">COPA DEL<br><span>MUNDO 2026</span></div>
+    <div class="hero-title">POLLA<br><span>MALAZOS</span></div>
     <div class="hero-stats">
       <div><div class="hero-stat-num">48</div><div class="hero-stat-label">Selecciones</div></div>
       <div><div class="hero-stat-num">104</div><div class="hero-stat-label">Partidos</div></div>
@@ -507,7 +507,7 @@ function toggleAuth() {
   authMode = authMode === 'register' ? 'login' : 'register';
   const r = authMode === 'register';
   document.getElementById('authTitle').textContent  = r ? 'BIENVENIDO' : 'INGRESAR';
-  document.getElementById('authSub').textContent    = r ? 'Registrate y competí pronosticando el Mundial 2026' : 'Ingresá a tu cuenta';
+  document.getElementById('authSub').textContent    = r ? 'Registrate y competí con tus malazos pronosticando el Mundial 2026' : 'Ingresá a tu cuenta';
   document.getElementById('authBtn').textContent    = r ? 'Crear cuenta' : 'Iniciar sesión';
   document.getElementById('regFields').style.display = r ? '' : 'none';
   document.getElementById('authToggle').innerHTML   = r
