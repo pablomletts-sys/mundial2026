@@ -1753,11 +1753,10 @@ async function confirmResultsCSV() {
   cancelResultsCSV();
   toast(`✅ ${ok} resultados aplicados${fail ? ` · ${fail} fallaron` : ''} — puntos recalculados`);
   resultsCsvParsed = [];
+  allMatches = []; // limpiar cache
 
-  // Recargar datos admin
-  const matches = await fetchMatches();
+  const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
   adminData.matches = matches;
-  const lb = await apiFetch('/leaderboard');
   adminData.lb = lb;
   renderAdminDashboard();
   renderAdminResults();
@@ -1782,17 +1781,39 @@ function setResultsCsvStatus(msg, isError = false) {
 async function resetAllResults() {
   if (!confirm('¿Seguro? Esto borra TODOS los resultados y vuelve todos los partidos a "scheduled". Los pronósticos de los usuarios se mantienen pero los puntos se resetean a null.')) return;
 
-  // Reset matches via Supabase — necesitamos un endpoint admin
   try {
     await apiFetch('/admin/reset-results', { method: 'POST' });
-    toast('✓ Todos los resultados borrados — partidos vueltos a scheduled');
-    const matches = await fetchMatches();
+
+    // Limpiar cache de partidos
+    allMatches = [];
+
+    // Recargar datos frescos
+    const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
     adminData.matches = matches;
+    adminData.lb = lb;
+
+    // Actualizar todas las vistas
     renderAdminDashboard();
     renderAdminResults();
+
+    toast('✓ Todos los resultados borrados — partidos vueltos a scheduled');
+
+    // Si estamos en home, re-renderizar
+    if (document.getElementById('page-home')?.classList.contains('active')) {
+      renderHome();
+    }
+    // Si estamos en leaderboard, re-renderizar
+    if (document.getElementById('page-leaderboard')?.classList.contains('active')) {
+      renderLeaderboard();
+    }
+    // Si estamos en partidos, re-renderizar la tab activa
+    if (document.getElementById('page-fixture')?.classList.contains('active') && activeGroup) {
+      renderFixtures(activeGroup);
+    }
+
   } catch(e) {
-    // Fallback: mostrar SQL para hacerlo manual en Supabase
-    toast('Ejecuta esto en Supabase SQL: UPDATE matches SET result_home=NULL, result_away=NULL, status=\'scheduled\' WHERE group_label IS NOT NULL; UPDATE predictions SET points=NULL;', true);
+    console.error('Reset error:', e);
+    toast('Error al resetear. Ejecuta en Supabase: UPDATE matches SET result_home=NULL, result_away=NULL, status=\'scheduled\' WHERE group_label IS NOT NULL; UPDATE predictions SET points=NULL;', true);
   }
 }
 
