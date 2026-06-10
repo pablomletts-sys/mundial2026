@@ -954,6 +954,39 @@ function fmtDate(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
 }
 
+// Calcula tiempo restante hasta el cierre del pronóstico (10 min antes del partido)
+function fmtCountdown(matchDate, kickoffET) {
+  if (!kickoffET) return null;
+
+  // Construir fecha UTC del partido (misma lógica que fmtMatchTime)
+  const naive = new Date(`${matchDate}T${kickoffET}:00Z`);
+  const etParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(naive);
+  const etH = parseInt(etParts.find(p => p.type === 'hour')?.value || '0');
+  const etM = parseInt(etParts.find(p => p.type === 'minute')?.value || '0');
+  const [wH, wM] = kickoffET.split(':').map(Number);
+  const diffMin = (wH * 60 + wM) - (etH * 60 + etM);
+  const kickoffUTC = new Date(naive.getTime() + diffMin * 60 * 1000);
+
+  // Cierre = 10 minutos antes del pitazo
+  const deadline = new Date(kickoffUTC.getTime() - 10 * 60 * 1000);
+  const now      = new Date();
+  const msLeft   = deadline - now;
+
+  if (msLeft <= 0) return null; // ya cerró
+
+  const totalMin = Math.floor(msLeft / 60000);
+  const days     = Math.floor(totalMin / 1440);
+  const hours    = Math.floor((totalMin % 1440) / 60);
+  const mins     = totalMin % 60;
+
+  if (days > 0)  return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
 function canPredict(m) {
   if (m.status === 'finished' || m.status === 'live') return false;
   return true; // server double-checks
@@ -971,6 +1004,14 @@ function matchCardHTML(m) {
 
   // Fecha y hora en zona local del usuario
   const { date: dateStr, time: timeStr } = fmtMatchTime(m.match_date, m.kickoff_time);
+
+  // Countdown al cierre
+  const countdown = (!done && !live) ? fmtCountdown(m.match_date, m.kickoff_time) : null;
+  const countdownHtml = countdown
+    ? `<span style="font-size:9px;color:var(--chalk-dim);display:flex;align-items:center;gap:3px">
+        <span style="opacity:0.6">🕐</span> Cierra en ${countdown}
+       </span>`
+    : '';
 
   // Score
   let scoreHtml;
@@ -1015,7 +1056,7 @@ function matchCardHTML(m) {
   return `
   <div class="match-card ${pred ? 'predicted' : ''} ${done ? 'finished' : ''}" id="mc${m.id}">
     <div class="mc-header">
-      <span>${dateStr}${timeStr ? ' · ' + timeStr : ''}</span>
+      <span>${dateStr}${timeStr ? ' · ' + timeStr : ''}${m.group_label ? ' · Grp ' + m.group_label : ''}</span>
       ${ptsHtml}
     </div>
     <div class="mc-body">
@@ -1032,7 +1073,10 @@ function matchCardHTML(m) {
       </div>
     </div>
     <div class="mc-footer">
-      <div class="mc-venue">${m.venue || ''}</div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div class="mc-venue">${m.venue || ''}</div>
+        ${countdownHtml}
+      </div>
       ${predControls}
     </div>
   </div>`;
