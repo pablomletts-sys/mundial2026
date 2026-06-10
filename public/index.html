@@ -572,8 +572,43 @@ body{
 <!-- ══ MIS PICKS ═══════════════════════════════════════════ -->
 <div class="page" id="page-mispicks">
   <div class="section-head"><h2>MIS PICKS</h2><p>Todos tus pronósticos y puntos</p></div>
-  <!-- Stats row -->
-  <div id="myStatsRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px"></div>
+
+  <!-- Stats -->
+  <div id="myStatsRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px"></div>
+
+  <!-- CSV Actions -->
+  <div style="background:rgba(240,192,64,0.05);border:1px solid rgba(240,192,64,0.15);border-radius:10px;padding:18px 20px;margin-bottom:24px">
+    <div style="font-family:var(--display);font-size:16px;letter-spacing:1px;color:var(--gold);margin-bottom:6px">📥 PRONÓSTICOS EN CSV</div>
+    <div style="font-size:12px;color:var(--chalk-dim);margin-bottom:14px;line-height:1.5">
+      Descarga el template, llena tus pronósticos en Excel/Google Sheets y súbelo. Solo se importan partidos que aún no empezaron.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button onclick="downloadPicksCSV()" class="btn-sm" style="display:flex;align-items:center;gap:6px">
+        ⬇ Descargar CSV
+      </button>
+      <label style="background:rgba(255,255,255,0.06);border:1px solid var(--card-bdr);color:var(--chalk);font-size:12px;font-weight:600;padding:6px 14px;border-radius:var(--radius);cursor:pointer;transition:all 0.15s" 
+             onmouseover="this.style.borderColor='rgba(240,192,64,0.3)'" 
+             onmouseout="this.style.borderColor='var(--card-bdr)'">
+        ⬆ Cargar CSV
+        <input type="file" accept=".csv" onchange="uploadPicksCSV(event)" style="display:none">
+      </label>
+      <div id="csvStatus" style="font-size:12px;color:var(--chalk-dim)"></div>
+    </div>
+    <!-- Preview table -->
+    <div id="csvPreview" style="display:none;margin-top:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+        Vista previa — <span id="csvPreviewCount"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="csvPreviewTable" style="width:100%;border-collapse:collapse;font-size:12px"></table>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="confirmCSVUpload()" class="btn-sm" id="csvConfirmBtn">Guardar pronósticos</button>
+        <button onclick="cancelCSVUpload()" class="btn-sm ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Picks list -->
   <div class="section-head" style="margin-bottom:14px"><h2>PARTIDOS</h2></div>
   <div class="matches-grid" id="myPicksGrid"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
@@ -1142,7 +1177,201 @@ async function renderLeaderboard() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// ADMIN PANEL
+// CSV — DESCARGA Y CARGA DE PRONÓSTICOS
+// ══════════════════════════════════════════════════════════════════
+let csvParsed = [];
+
+async function downloadPicksCSV() {
+  const matches = allMatches.length ? allMatches : await fetchMatches();
+
+  const rows = matches
+    .filter(m => m.status !== 'finished')
+    .map(m => {
+      const pred = m.my_prediction;
+      const { date: d, time: t } = fmtMatchTime(m.match_date, m.kickoff_time);
+      return {
+        id:               m.id,
+        fase:             m.phase,
+        fecha:            d,
+        hora:             t,
+        local:            getName(m.home),
+        visitante:        getName(m.away),
+        goles_local:      pred != null ? pred.pred_home : '',
+        goles_visitante:  pred != null ? pred.pred_away : '',
+      };
+    });
+
+  const header = 'id,fase,fecha,hora,local,visitante,goles_local,goles_visitante';
+  const body = rows.map(r =>
+    `${r.id},"${r.fase}","${r.fecha}","${r.hora}","${r.local}","${r.visitante}",${r.goles_local},${r.goles_visitante}`
+  ).join('\n');
+
+  const blob = new Blob([header + '\n' + body], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `polla-malazos-${currentUser.name.split(' ')[0].toLowerCase()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV descargado ⬇');
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function uploadPicksCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const lines  = e.target.result.trim().split('\n');
+      const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
+
+      const idIdx  = header.indexOf('id');
+      const hlIdx  = header.indexOf('goles_local');
+      const hvIdx  = header.indexOf('goles_visitante');
+      const locIdx = header.indexOf('local');
+      const visIdx = header.indexOf('visitante');
+
+      if (idIdx < 0 || hlIdx < 0 || hvIdx < 0) {
+        setCSVStatus('❌ Formato inválido. Usa el CSV descargado como base.', true); return;
+      }
+
+      csvParsed = [];
+      const errors = [], skipped = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols    = parseCSVLine(lines[i]);
+        const matchId = parseInt(cols[idIdx]);
+        const hVal    = cols[hlIdx]?.trim();
+        const aVal    = cols[hvIdx]?.trim();
+
+        if (!matchId || hVal === '' || aVal === '' || hVal === undefined || aVal === undefined) {
+          skipped.push(i + 1); continue;
+        }
+
+        const ph = parseInt(hVal), pa = parseInt(aVal);
+        if (isNaN(ph) || isNaN(pa) || ph < 0 || pa < 0 || ph > 30 || pa > 30) {
+          errors.push(`Fila ${i+1}: marcador inválido (${hVal}-${aVal})`); continue;
+        }
+
+        const match = allMatches.find(m => m.id === matchId);
+        if (!match) { errors.push(`Fila ${i+1}: partido ID ${matchId} no encontrado`); continue; }
+        if (match.status === 'finished' || match.status === 'live') { skipped.push(i+1); continue; }
+
+        csvParsed.push({
+          match_id:   matchId,
+          pred_home:  ph,
+          pred_away:  pa,
+          local:      cols[locIdx]?.replace(/"/g,'').trim() || '',
+          visita:     cols[visIdx]?.replace(/"/g,'').trim() || '',
+        });
+      }
+
+      if (!csvParsed.length && !errors.length) {
+        setCSVStatus('⚠️ No se encontraron pronósticos válidos. Llena las columnas goles_local y goles_visitante.', true); return;
+      }
+      showCSVPreview(csvParsed, errors, skipped);
+    } catch(err) {
+      setCSVStatus('❌ Error leyendo el archivo: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
+
+function showCSVPreview(picks, errors, skipped) {
+  document.getElementById('csvPreviewCount').textContent =
+    `${picks.length} pronóstico${picks.length !== 1 ? 's' : ''} para guardar` +
+    (skipped.length ? ` · ${skipped.length} omitidos` : '') +
+    (errors.length  ? ` · ${errors.length} con error` : '');
+
+  document.getElementById('csvPreviewTable').innerHTML = `
+    <thead>
+      <tr style="border-bottom:1px solid var(--card-bdr)">
+        <th style="text-align:left;padding:6px 10px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase">Partido</th>
+        <th style="padding:6px 10px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Pronóstico</th>
+        <th style="padding:6px 10px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${picks.map(p => {
+        const existing = allMatches.find(m => m.id === p.match_id)?.my_prediction;
+        const changed  = existing && (existing.pred_home !== p.pred_home || existing.pred_away !== p.pred_away);
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:7px 10px;color:var(--chalk)">${p.local} vs ${p.visita}</td>
+          <td style="padding:7px 10px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--gold)">${p.pred_home} – ${p.pred_away}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:10px">
+            ${changed  ? `<span style="color:#f0a030">✏ Actualiza (${existing.pred_home}–${existing.pred_away})</span>`
+              : existing ? `<span style="color:var(--chalk-dim)">Sin cambios</span>`
+              :             `<span style="color:var(--green)">✦ Nuevo</span>`}
+          </td>
+        </tr>`;
+      }).join('')}
+      ${errors.map(e => `<tr><td colspan="3" style="padding:6px 10px;color:#ff7070;font-size:11px">⚠ ${e}</td></tr>`).join('')}
+    </tbody>`;
+
+  document.getElementById('csvPreview').style.display = 'block';
+  setCSVStatus('');
+}
+
+async function confirmCSVUpload() {
+  if (!csvParsed.length) return;
+  const btn = document.getElementById('csvConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  let saved = 0, failed = 0;
+  for (const pick of csvParsed) {
+    try {
+      await apiFetch('/predictions', {
+        method: 'POST',
+        body: JSON.stringify({ match_id: pick.match_id, pred_home: pick.pred_home, pred_away: pick.pred_away })
+      });
+      saved++;
+    } catch(e) {
+      if (!e.message.includes('cerrado') && !e.message.includes('empezó')) failed++;
+    }
+  }
+
+  cancelCSVUpload();
+  toast(`✅ ${saved} pronóstico${saved !== 1 ? 's' : ''} guardado${saved !== 1 ? 's' : ''}${failed ? ` · ${failed} fallaron` : ''}`);
+  csvParsed = [];
+  const matches = await fetchMatches();
+  allMatches = matches;
+  renderMisPicks();
+}
+
+function cancelCSVUpload() {
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('csvPreviewTable').innerHTML = '';
+  csvParsed = [];
+  setCSVStatus('');
+  const btn = document.getElementById('csvConfirmBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Guardar pronósticos'; }
+}
+
+function setCSVStatus(msg, isError = false) {
+  const el = document.getElementById('csvStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#ff7070' : 'var(--chalk-dim)';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ADMIN PANEL (home widget)
 // ══════════════════════════════════════════════════════════════════
 function renderAdmin(matches) {
   const pending = matches.filter(m => m.status !== 'finished');
