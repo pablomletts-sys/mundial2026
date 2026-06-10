@@ -24,6 +24,153 @@ function requireUser(event) {
   } catch { return null; }
 }
 
+// Quitar emojis, flags, acentos y dejar solo letras
+function norm(s) {
+  if (!s) return '';
+  return s
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '') // emojis y flags
+    .replace(/[\u{E0000}-\u{E007F}]/gu, '') // tag characters (flags regionales)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // acentos
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .trim();
+}
+
+export const handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return cors({});
+  if (event.httpMethod !== 'GET') return cors({ error: 'Method not allowed' }, 405);
+
+  const user = requireUser(event);
+  if (!user) return cors({ error: 'No autenticado' }, 401);
+  if (!ODDS_KEY) return cors({ error: 'ODDS_API_KEY not set' }, 500);
+
+  const { home, away, debug } = event.queryStringParameters || {};
+  if (!home || !away) return cors({ error: 'Faltan parámetros' }, 400);
+
+  // Limpiar nombres — quitar emoji del principio (ej: "🇲🇽 México" → "mexico")
+  const homeName = norm(home);
+  const awayName = norm(away);
+
+  try {
+    const res = await fetch(
+      `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds/?apiKey=${ODDS_KEY}&regions=eu,uk&markets=h2h&oddsFormat=decimal`,
+      { headers: { Accept: 'application/json' } }
+    );
+
+    let allEvents = [];
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) allEvents = data;
+    }
+
+    // Si no hay eventos en World Cup, probar con soccer general
+    if (!allEvents.length) {
+      const res2 = await fetch(
+        `https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey=${ODDS_KEY}&regions=eu,uk&markets=h2h&oddsFormat=decimal`,
+        { headers: { Accept: 'application/json' } }
+      );
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (Array.isArray(data2)) allEvents = data2;
+      }
+    }
+
+    if (debug === '1') {
+      return cors({
+        total_events: allEvents.length,
+        home_normalized: homeName,
+        away_normalized: awayName,
+        sample: allEvents.slice(0, 8).map(e => ({
+          home: e.home_team,
+          away: e.away_team,
+          sport: e.sport_key,
+          bookmakers: e.bookmakers?.length || 0
+        }))
+      });
+    }
+
+    if (!allEvents.length) return cors({ found: false, reason: 'no_events' });
+
+    const hn = homeName.replace(/\s+/g,'').slice(0, 6);
+    const an = awayName.replace(/\s+/g,'').slice(0, 6);
+
+    const matched = allEvents.find(e => {
+      const h = norm(e.home_team).replace(/\s+/g,'');
+      const a = norm(e.away_team).replace(/\s+/g,'');
+      return (h.includes(hn.slice(0,4)) || hn.includes(h.slice(0,4))) &&
+             (a.includes(an.slice(0,4)) || an.includes(a.slice(0,4)));
+    });
+
+    if (!matched) return cors({ found: false, reason: 'no_match', hn, an });
+
+    const bm = matched.bookmakers?.find(b => b.key === 'bet365')
+      || matched.bookmakers?.find(b => b.key === 'williamhill')
+      || matched.bookmakers?.[0];
+
+    if (!bm) return cors({ found: false, reason: 'no_bookmaker' });
+
+    const h2h = bm.markets?.find(m => m.key === 'h2h');
+    if (!h2h?.outcomes?.length) return cors({ found: false, reason: 'no_h2h' });
+
+    const outcomes = h2h.outcomes;
+    const homeOut = outcomes.find(o => {
+      const n = norm(o.name).replace(/\s+/g,'');
+      return n.includes(hn.slice(0,4)) || hn.includes(n.slice(0,4));
+    });
+    const awayOut = outcomes.find(o => {
+      const n = norm(o.name).replace(/\s+/g,'');
+      return n.includes(an.slice(0,4)) || an.includes(n.slice(0,4));
+    });
+    const drawOut = outcomes.find(o => norm(o.name) === 'draw');
+
+    if (!homeOut || !awayOut) return cors({ found: false, reason: 'no_outcomes', outcomes: outcomes.map(o => o.name), hn, an });
+
+    const pH = 1 / homeOut.price;
+    const pD = drawOut ? 1 / drawOut.price : 0;
+    const pA = 1 / awayOut.price;
+    const total = pH + pD + pA;
+
+    return cors({
+      found: true,
+      home:    Math.round(pH / total * 100),
+      draw:    Math.round(pD / total * 100),
+      away:    Math.round(pA / total * 100),
+      source:  bm.title,
+      homeOdd: homeOut.price.toFixed(2),
+      drawOdd: drawOut?.price.toFixed(2) || null,
+      awayOdd: awayOut.price.toFixed(2),
+    });
+
+  } catch (err) {
+    console.error('Odds error:', err.message, err.stack);
+    return cors({ error: err.message }, 500);
+  }
+};
+
+const ODDS_KEY = process.env.ODDS_API_KEY;
+const JWT_SECRET = process.env.JWT_SECRET || 'mundial2026-secret';
+
+function cors(body, status = 200) {
+  return {
+    statusCode: status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Cache-Control': 'public, max-age=300',
+    },
+    body: JSON.stringify(body),
+  };
+}
+
+function requireUser(event) {
+  try {
+    const token = (event.headers.authorization || '').replace('Bearer ', '');
+    return jwt.verify(token, JWT_SECRET);
+  } catch { return null; }
+}
+
 function norm(s) {
   if (!s) return '';
   return s.toLowerCase()
