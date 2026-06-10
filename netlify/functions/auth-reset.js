@@ -87,7 +87,7 @@ async function sendEmail(to, name, token) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Polla Malazos <noreply@pollamalazos.com>',
+      from: 'Polla Malazos <onboarding@resend.dev>',
       to: [to],
       subject: '🔐 Restablece tu contraseña — Polla Malazos',
       html,
