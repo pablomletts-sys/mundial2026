@@ -1142,14 +1142,12 @@ const oddsCache = {};
 
 async function fetchOdds(matchId, homeTeam, awayTeam) {
   if (oddsCache[matchId] !== undefined) return oddsCache[matchId];
-  oddsCache[matchId] = null; // marcar como consultado
+  oddsCache[matchId] = null;
 
   try {
-    const res = await fetch(
-      `/api/odds?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
+    const data = await apiFetch(
+      `/odds?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
     );
-    if (!res.ok) return null;
-    const data = await res.json();
     if (!data.found) return null;
     oddsCache[matchId] = data;
     return data;
@@ -1161,9 +1159,9 @@ async function fetchOdds(matchId, homeTeam, awayTeam) {
 function oddsHTML(odds, homeName, awayName) {
   if (!odds) return '';
   return `
-    <div style="margin-top:8px;grid-column:1/-1">
-      <div style="font-size:9px;color:var(--chalk-dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px">
-        Prob. según casa de apuestas · ${odds.source}
+    <div style="width:100%;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)">
+      <div style="font-size:9px;color:var(--chalk-dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px">
+        📊 Probabilidades · ${odds.source}
       </div>
       <div class="odds-row">
         <div class="odds-home" style="width:${odds.home}%"></div>
@@ -1171,9 +1169,9 @@ function oddsHTML(odds, homeName, awayName) {
         <div class="odds-away" style="width:${odds.away}%"></div>
       </div>
       <div class="odds-labels">
-        <span class="odds-label home">${getName(homeName)} ${odds.home}%</span>
-        <span class="odds-label">Empate ${odds.draw}%</span>
-        <span class="odds-label away">${odds.away}% ${getName(awayName)}</span>
+        <span class="odds-label home">${getName(homeName)} ${odds.home}%${odds.homeOdd ? ` <span style="opacity:0.6">(${odds.homeOdd})</span>` : ''}</span>
+        ${odds.draw > 0 ? `<span class="odds-label">Empate ${odds.draw}%${odds.drawOdd ? ` <span style="opacity:0.6">(${odds.drawOdd})</span>` : ''}</span>` : ''}
+        <span class="odds-label away">${odds.away}%${odds.awayOdd ? ` <span style="opacity:0.6">(${odds.awayOdd})</span>` : ''} ${getName(awayName)}</span>
       </div>
     </div>`;
 }
