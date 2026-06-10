@@ -105,5 +105,17 @@ export const handler = async (event) => {
     return cors({ ok: true });
   }
 
+  // ── POST /admin/reset-results ─────────────────────────────
+  if (path === '/reset-results' && event.httpMethod === 'POST') {
+    await supabase
+      .from('matches')
+      .update({ result_home: null, result_away: null, status: 'scheduled' })
+      .not('group_label', 'is', null); // solo partidos de grupos
+    await supabase
+      .from('predictions')
+      .update({ points: null });
+    return cors({ ok: true });
+  }
+
   return cors({ error: 'Not found' }, 404);
 };
