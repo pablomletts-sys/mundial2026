@@ -149,13 +149,17 @@ body{
 }
 .mc-team{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
 .mc-team.right{}
-.mc-flag{font-size:38px;line-height:1}
-.mc-flag img{width:42px;height:28px;object-fit:cover;border-radius:3px}
-.mc-name{font-size:11px;font-weight:700;color:var(--chalk);letter-spacing:0.3px;text-transform:uppercase}
+.mc-name{font-size:11px;font-weight:700;color:var(--chalk);letter-spacing:0.3px;text-transform:uppercase;word-break:break-word;text-align:center;max-width:90px}
+.mc-flag{font-size:38px;line-height:1;min-height:38px;display:flex;align-items:center;justify-content:center}
 .mc-center{display:flex;flex-direction:column;align-items:center;gap:4px}
 .mc-score{
   font-family:var(--mono);font-size:24px;font-weight:700;
   color:var(--chalk);letter-spacing:2px;white-space:nowrap;
+}
+.mc-score.placeholder{
+  font-family:var(--body);font-size:13px;font-weight:700;
+  color:var(--chalk);letter-spacing:0;white-space:normal;text-align:center;
+  line-height:1.3;
 }
 .mc-score.pending{
   font-family:var(--body);font-size:11px;font-weight:400;
@@ -754,7 +758,7 @@ let authMode    = 'register';
 let allMatches  = [];
 let activeGroup = 'A';
 
-const PHASES = ['A','B','C','D','E','F','G','H','I','J','K','L','Octavos','Cuartos','Semifinales','3er Puesto','Final'];
+const PHASES = ['A','B','C','D','E','F','G','H','I','J','K','L','Round of 32','Round of 16','Cuartos','Semifinales','3er Puesto','Final'];
 
 // ══════════════════════════════════════════════════════════════════
 // STORAGE
@@ -1053,6 +1057,11 @@ function matchCardHTML(m) {
     predControls = `<div style="font-size:9px;color:var(--chalk-dim)">⏰ Cerrado</div>`;
   }
 
+  // Detectar si es equipo placeholder (fase eliminatoria sin equipos definidos)
+  const isPlaceholder = (name) => !name.match(/^\S+\s/); // sin emoji = placeholder
+  const homePH = isPlaceholder(m.home);
+  const awayPH = isPlaceholder(m.away);
+
   return `
   <div class="match-card ${pred ? 'predicted' : ''} ${done ? 'finished' : ''}" id="mc${m.id}">
     <div class="mc-header">
@@ -1061,15 +1070,19 @@ function matchCardHTML(m) {
     </div>
     <div class="mc-body">
       <div class="mc-team">
-        <div class="mc-flag">${getFlag(m.home)}</div>
-        <div class="mc-name">${getName(m.home)}</div>
+        ${homePH
+          ? `<div class="mc-score placeholder">${m.home}</div>`
+          : `<div class="mc-flag">${getFlag(m.home)}</div><div class="mc-name">${getName(m.home)}</div>`
+        }
       </div>
       <div class="mc-center">
         ${scoreHtml}
       </div>
       <div class="mc-team right">
-        <div class="mc-flag">${getFlag(m.away)}</div>
-        <div class="mc-name">${getName(m.away)}</div>
+        ${awayPH
+          ? `<div class="mc-score placeholder">${m.away}</div>`
+          : `<div class="mc-flag">${getFlag(m.away)}</div><div class="mc-name">${getName(m.away)}</div>`
+        }
       </div>
     </div>
     <div class="mc-footer">
@@ -1146,8 +1159,13 @@ async function renderHome() {
 // ══════════════════════════════════════════════════════════════════
 async function renderFixtures(group) {
   activeGroup = group;
+  const TAB_LABELS = {
+    'Round of 32': 'R32', 'Round of 16': 'R16',
+    'Cuartos': 'Cuartos', 'Semifinales': 'Semis',
+    '3er Puesto': '3°', 'Final': 'Final'
+  };
   document.getElementById('groupTabs').innerHTML = PHASES.map(p =>
-    `<div class="tab ${p === group ? 'active' : ''}" onclick="renderFixtures('${p}')">${p}</div>`
+    `<div class="tab ${p === group ? 'active' : ''}" onclick="renderFixtures('${p}')">${TAB_LABELS[p] || p}</div>`
   ).join('');
 
   document.getElementById('fixtureMatches').innerHTML = '<div class="loading-msg"><span class="spinner"></span> Cargando…</div>';
