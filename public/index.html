@@ -1328,6 +1328,13 @@ function uploadPicksCSV(event) {
 
         } else {
           // Formato Futpolla
+          // Solo importar fase de grupos de Futpolla — las eliminatorias tienen equipos TBD
+          const stageIdx = header.indexOf('stage');
+          if (stageIdx >= 0) {
+            const stage = cols[stageIdx]?.replace(/"/g,'').trim().toLowerCase();
+            if (stage && stage !== 'group') { skipped.push(i + 1); continue; }
+          }
+
           const htIdx = header.indexOf('home_team');
           const atIdx = header.indexOf('away_team');
           const phIdx = header.indexOf('predicted_home_score');
