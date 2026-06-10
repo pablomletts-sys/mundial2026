@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from './_supabase.js';
 import bcrypt from 'bcryptjs';
 
 const RESEND_KEY = process.env.RESEND_API_KEY;
@@ -15,14 +15,6 @@ function cors(body, status = 200) {
     },
     body: JSON.stringify(body),
   };
-}
-
-function getSupabase() {
-  return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
-    { auth: { persistSession: false }, global: { fetch } }
-  );
 }
 
 // Generar token usando Web Crypto (disponible en Node 18+, sin imports)
