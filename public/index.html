@@ -1784,7 +1784,7 @@ async function resetAllResults() {
   try {
     await apiFetch('/admin/reset-results', { method: 'POST' });
 
-    // Limpiar cache de partidos
+    // Limpiar cache de partidos y forzar re-render de todo
     allMatches = [];
 
     // Recargar datos frescos
@@ -1792,24 +1792,15 @@ async function resetAllResults() {
     adminData.matches = matches;
     adminData.lb = lb;
 
-    // Actualizar todas las vistas
+    // Actualizar vistas admin
     renderAdminDashboard();
     renderAdminResults();
 
-    toast('✓ Todos los resultados borrados — partidos vueltos a scheduled');
+    // Forzar re-render de TODAS las páginas visibles
+    // (las cards muestran resultados en DOM aunque no estén activas)
+    renderHome();
 
-    // Si estamos en home, re-renderizar
-    if (document.getElementById('page-home')?.classList.contains('active')) {
-      renderHome();
-    }
-    // Si estamos en leaderboard, re-renderizar
-    if (document.getElementById('page-leaderboard')?.classList.contains('active')) {
-      renderLeaderboard();
-    }
-    // Si estamos en partidos, re-renderizar la tab activa
-    if (document.getElementById('page-fixture')?.classList.contains('active') && activeGroup) {
-      renderFixtures(activeGroup);
-    }
+    toast('✓ Todos los resultados borrados — puntos reseteados a cero');
 
   } catch(e) {
     console.error('Reset error:', e);
