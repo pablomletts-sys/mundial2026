@@ -1327,18 +1327,16 @@ function uploadPicksCSV(event) {
           ph = parseInt(hVal); pa = parseInt(aVal);
 
         } else {
-          // Formato Futpolla — matching por fecha UTC del kickoff
-          const htIdx   = header.indexOf('home_team');
-          const atIdx   = header.indexOf('away_team');
-          const phIdx   = header.indexOf('predicted_home_score');
-          const paIdx   = header.indexOf('predicted_away_score');
-          const dtIdx   = header.indexOf('kickoff_at');
+          // Formato Futpolla
+          const htIdx = header.indexOf('home_team');
+          const atIdx = header.indexOf('away_team');
+          const phIdx = header.indexOf('predicted_home_score');
+          const paIdx = header.indexOf('predicted_away_score');
 
-          const homeRaw  = cols[htIdx]?.replace(/"/g,'').trim();
-          const awayRaw  = cols[atIdx]?.replace(/"/g,'').trim();
-          const phRaw    = cols[phIdx]?.trim();
-          const paRaw    = cols[paIdx]?.trim();
-          const kickoffZ = cols[dtIdx]?.replace(/"/g,'').trim();
+          const homeRaw = cols[htIdx]?.replace(/"/g,'').trim();
+          const awayRaw = cols[atIdx]?.replace(/"/g,'').trim();
+          const phRaw   = cols[phIdx]?.trim();
+          const paRaw   = cols[paIdx]?.trim();
 
           if (!homeRaw || !awayRaw) { skipped.push(i + 1); continue; }
           if (phRaw === '' || paRaw === '' || phRaw === undefined || paRaw === undefined) {
@@ -1349,66 +1347,82 @@ function uploadPicksCSV(event) {
           localName  = homeRaw;
           visitaName = awayRaw;
 
-          const norm = s => s.toLowerCase()
+          // Tabla completa de equivalencias EN → ES (nombres que usa Futpolla)
+          const EQUIV = {
+            'mexico':                    'mexico',
+            'southafrica':               'sudafrica',
+            'korearepublic':             'coreadelsu',
+            'czechrepublic':             'chequia',
+            'canada':                    'canada',
+            'bosniaandherzegovina':      'bosniaherzegovina',
+            'qatar':                     'qatar',
+            'switzerland':               'suiza',
+            'brazil':                    'brasil',
+            'morocco':                   'marruecos',
+            'haiti':                     'haiti',
+            'scotland':                  'escocia',
+            'unitedstates':              'estadosunido',
+            'paraguay':                  'paraguay',
+            'australia':                 'australia',
+            'turkey':                    'turquia',
+            'germany':                   'alemania',
+            'curacao':                   'curazao',
+            'cotedivoire':               'costademarfi',
+            'ecuador':                   'ecuador',
+            'netherlands':               'paisesbajos',
+            'japan':                     'japon',
+            'sweden':                    'suecia',
+            'tunisia':                   'tunez',
+            'belgium':                   'belgica',
+            'egypt':                     'egipto',
+            'iran':                      'iran',
+            'newzealand':                'nuevazelanda',
+            'spain':                     'espana',
+            'capeverdeislands':          'caboverde',
+            'saudiarabia':               'arabiasaudit',
+            'uruguay':                   'uruguay',
+            'france':                    'francia',
+            'senegal':                   'senegal',
+            'iraq':                      'irak',
+            'norway':                    'noruega',
+            'argentina':                 'argentina',
+            'algeria':                   'argelia',
+            'austria':                   'austria',
+            'jordan':                    'jordania',
+            'portugal':                  'portugal',
+            'congodr':                   'drcongo',
+            'uzbekistan':                'uzbekistan',
+            'colombia':                  'colombia',
+            'england':                   'inglaterra',
+            'croatia':                   'croacia',
+            'ghana':                     'ghana',
+            'panama':                    'panama',
+          };
+
+          const normFut = s => s.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+            .replace(/[\s'\-\.]/g,'')
+            .replace(/[^a-z]/g,'');
+
+          const normDB = s => s.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
             .replace(/[^a-z]/g,'');
 
-          const normHome = norm(homeRaw);
-          const normAway = norm(awayRaw);
+          const resolveEN = (name) => {
+            const key = normFut(name);
+            return EQUIV[key] || key.slice(0, 8);
+          };
 
-          // Primero intentar match por fecha UTC del kickoff (más preciso)
-          let match = null;
+          const homeKey = resolveEN(homeRaw);
+          const awayKey = resolveEN(awayRaw);
 
-          if (kickoffZ) {
-            const kickoffDate = new Date(kickoffZ);
-            // Buscar partido cuyo kickoff UTC coincida (±30 min de tolerancia)
-            match = allMatches.find(m => {
-              if (!m.kickoff_time || !m.match_date) return false;
-              // Reconstruir UTC del partido de nuestra DB
-              const naive = new Date(`${m.match_date}T${m.kickoff_time}:00Z`);
-              const etParts = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'America/New_York',
-                hour: '2-digit', minute: '2-digit', hour12: false
-              }).formatToParts(naive);
-              const etH = parseInt(etParts.find(p => p.type === 'hour')?.value || '0');
-              const etM = parseInt(etParts.find(p => p.type === 'minute')?.value || '0');
-              const [wH, wM] = m.kickoff_time.split(':').map(Number);
-              const diffMin = (wH * 60 + wM) - (etH * 60 + etM);
-              const matchUTC = new Date(naive.getTime() + diffMin * 60000);
-              const diffMs = Math.abs(matchUTC - kickoffDate);
-              return diffMs < 30 * 60 * 1000; // ±30 min
-            });
-          }
-
-          // Fallback: match por nombre de equipos si no encontramos por fecha
-          if (!match) {
-            match = allMatches.find(m => {
-              const dbHome = norm(getName(m.home));
-              const dbAway = norm(getName(m.away));
-              // Mapeo de nombres comunes en inglés → español
-              const aliases = {
-                'mexico': ['mexico', 'mxico'],
-                'southafrica': ['sudafrica'],
-                'korearepublic': ['coreadelsurc', 'coreadelsur'],
-                'czechrepublic': ['chequia','republicacheca'],
-                'bosniaandherzegovina': ['bosniaherzegovina','bosniayherzegovina'],
-                'cotedivoire': ['costademarfil','costadmarfil'],
-                'capeverdeislands': ['caboverde'],
-                'congodr': ['drcongo','rdcongo'],
-                'england': ['inglaterra'],
-                'unitedstates': ['estadosunidos','eeuu'],
-              };
-              const resolveAlias = (n) => {
-                const key = norm(n).replace(/\s/g,'');
-                return aliases[key] || [key];
-              };
-              const homeAliases = resolveAlias(homeRaw);
-              const awayAliases = resolveAlias(awayRaw);
-              const hOk = homeAliases.some(a => dbHome.includes(a.slice(0,5)) || a.includes(dbHome.slice(0,5)));
-              const aOk = awayAliases.some(a => dbAway.includes(a.slice(0,5)) || a.includes(dbAway.slice(0,5)));
-              return hOk && aOk;
-            });
-          }
+          const match = allMatches.find(m => {
+            const dbHome = normDB(getName(m.home)).replace(/\s/g,'');
+            const dbAway = normDB(getName(m.away)).replace(/\s/g,'');
+            const hOk = dbHome.startsWith(homeKey.slice(0,6)) || homeKey.startsWith(dbHome.slice(0,6));
+            const aOk = dbAway.startsWith(awayKey.slice(0,6)) || awayKey.startsWith(dbAway.slice(0,6));
+            return hOk && aOk;
+          });
 
           if (!match) {
             errors.push(`Fila ${i+1}: no encontrado — ${homeRaw} vs ${awayRaw}`);
