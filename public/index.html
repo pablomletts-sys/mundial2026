@@ -1621,8 +1621,14 @@ function loadResultsCSV(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
+      // Asegurar que tenemos los partidos cargados
+      if (!adminData.matches.length) {
+        setResultsCsvStatus('⏳ Cargando partidos…');
+        adminData.matches = await fetchMatches();
+      }
+
       const raw    = e.target.result.replace(/^\uFEFF/, '');
       const lines  = raw.trim().split('\n');
       const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
@@ -1650,27 +1656,41 @@ function loadResultsCSV(event) {
         const local   = cols[locIdx]?.replace(/"/g,'').trim() || '';
         const visita  = cols[visIdx]?.replace(/"/g,'').trim() || '';
 
-        if (!matchId) { errors.push(`Fila ${i+1}: match_id inválido`); continue; }
-        if (hVal === '' || aVal === '') { errors.push(`Fila ${i+1}: faltan goles`); continue; }
-
-        const ph = parseInt(hVal), pa = parseInt(aVal);
-        if (isNaN(ph) || isNaN(pa) || ph < 0 || pa > 30) {
-          errors.push(`Fila ${i+1}: marcador inválido`); continue;
+        if (!matchId || isNaN(matchId)) { errors.push(`Fila ${i+1}: match_id inválido`); continue; }
+        if (hVal === '' || hVal === undefined || aVal === '' || aVal === undefined) {
+          errors.push(`Fila ${i+1}: faltan goles`); continue;
         }
 
-        const match = adminData.matches.find(m => m.id === matchId);
-        if (!match) { errors.push(`Fila ${i+1}: partido ID ${matchId} no encontrado`); continue; }
+        const ph = parseInt(hVal), pa = parseInt(aVal);
+        if (isNaN(ph) || isNaN(pa) || ph < 0 || pa < 0 || ph > 30 || pa > 30) {
+          errors.push(`Fila ${i+1}: marcador inválido (${hVal}-${aVal})`); continue;
+        }
 
-        resultsCsvParsed.push({ match_id: matchId, result_home: ph, result_away: pa, local, visita });
+        // Buscar el partido para mostrar info — si no existe en cache, igual lo incluimos
+        const match = adminData.matches.find(m => m.id === matchId);
+
+        resultsCsvParsed.push({
+          match_id:    matchId,
+          result_home: ph,
+          result_away: pa,
+          local:       local || (match ? getName(match.home) : `ID ${matchId}`),
+          visita:      visita || (match ? getName(match.away) : ''),
+          already:     match?.status === 'finished',
+          prev:        match?.status === 'finished' ? `${match.result_home}–${match.result_away}` : null,
+        });
       }
 
       if (!resultsCsvParsed.length) {
-        setResultsCsvStatus('❌ No se encontraron resultados válidos.', true); return;
+        setResultsCsvStatus(errors.length
+          ? `❌ Sin resultados válidos. Errores: ${errors.slice(0,3).join('; ')}`
+          : '❌ El archivo está vacío o mal formateado.', true);
+        return;
       }
 
-      // Mostrar preview
+      // Preview
       document.getElementById('resultsCsvCount').textContent =
-        `${resultsCsvParsed.length} resultados` + (errors.length ? ` · ${errors.length} errores ignorados` : '');
+        `${resultsCsvParsed.length} resultados` +
+        (errors.length ? ` · ${errors.length} filas con error ignoradas` : '');
 
       document.getElementById('resultsCsvTable').innerHTML = `
         <thead>
@@ -1678,30 +1698,31 @@ function loadResultsCSV(event) {
             <th style="text-align:left;padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase">ID</th>
             <th style="text-align:left;padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase">Partido</th>
             <th style="padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Resultado</th>
-            <th style="padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Estado actual</th>
+            <th style="padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Estado</th>
           </tr>
         </thead>
         <tbody>
-          ${resultsCsvParsed.map(r => {
-            const m = adminData.matches.find(x => x.id === r.match_id);
-            const already = m?.status === 'finished';
-            return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+          ${resultsCsvParsed.map(r => `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
               <td style="padding:7px 12px;color:var(--chalk-dim);font-family:var(--mono)">${r.match_id}</td>
-              <td style="padding:7px 12px;color:var(--chalk)">${r.local || (m ? getName(m.home) : '?')} vs ${r.visita || (m ? getName(m.away) : '?')}</td>
+              <td style="padding:7px 12px;color:var(--chalk)">${r.local} vs ${r.visita}</td>
               <td style="padding:7px 12px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--gold)">${r.result_home} – ${r.result_away}</td>
               <td style="padding:7px 12px;text-align:center;font-size:11px">
-                ${already
-                  ? `<span style="color:#f0a030">Sobreescribe (${m.result_home}–${m.result_away})</span>`
+                ${r.already
+                  ? `<span style="color:#f0a030">Sobreescribe (${r.prev})</span>`
                   : `<span style="color:var(--green)">Nuevo</span>`}
               </td>
-            </tr>`;
-          }).join('')}
+            </tr>`).join('')}
+          ${errors.map(err => `
+            <tr><td colspan="4" style="padding:6px 12px;color:#ff7070;font-size:11px">⚠ ${err}</td></tr>
+          `).join('')}
         </tbody>`;
 
       document.getElementById('resultsCsvPreview').style.display = 'block';
       setResultsCsvStatus('');
 
     } catch(err) {
+      console.error('loadResultsCSV error:', err);
       setResultsCsvStatus('❌ Error leyendo el archivo: ' + err.message, true);
     }
   };
