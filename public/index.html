@@ -582,7 +582,7 @@ body{
   <div style="background:rgba(240,192,64,0.05);border:1px solid rgba(240,192,64,0.15);border-radius:10px;padding:18px 20px;margin-bottom:24px">
     <div style="font-family:var(--display);font-size:16px;letter-spacing:1px;color:var(--gold);margin-bottom:6px">📥 PRONÓSTICOS EN CSV</div>
     <div style="font-size:12px;color:var(--chalk-dim);margin-bottom:14px;line-height:1.5">
-      Descarga el template, llena tus pronósticos en Excel/Google Sheets y súbelo. Solo se importan partidos que aún no empezaron.
+      Descarga el template, llena tus pronósticos en Excel/Google Sheets y súbelo. También acepta el CSV exportado desde <strong style="color:var(--chalk)">Futpolla / QuinielaApp</strong>. Solo se importan partidos que aún no empezaron.
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button onclick="downloadPicksCSV()" class="btn-sm" style="display:flex;align-items:center;gap:6px">
@@ -1284,17 +1284,18 @@ function uploadPicksCSV(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const lines  = e.target.result.trim().split('\n');
+      // Quitar BOM si existe
+      const raw   = e.target.result.replace(/^\uFEFF/, '');
+      const lines = raw.trim().split('\n');
       const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
 
-      const idIdx  = header.indexOf('id');
-      const hlIdx  = header.indexOf('goles_local');
-      const hvIdx  = header.indexOf('goles_visitante');
-      const locIdx = header.indexOf('local');
-      const visIdx = header.indexOf('visitante');
+      // Detectar formato automáticamente
+      const isFutpolla = header.includes('home_team') && header.includes('predicted_home_score');
+      const isNativo   = header.includes('id') && header.includes('goles_local');
 
-      if (idIdx < 0 || hlIdx < 0 || hvIdx < 0) {
-        setCSVStatus('❌ Formato inválido. Usa el CSV descargado como base.', true); return;
+      if (!isFutpolla && !isNativo) {
+        setCSVStatus('❌ Formato no reconocido. Usa el CSV descargado o el exportado desde Futpolla/QuinielaApp.', true);
+        return;
       }
 
       csvParsed = [];
@@ -1302,35 +1303,91 @@ function uploadPicksCSV(event) {
 
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
-        const cols    = parseCSVLine(lines[i]);
-        const matchId = parseInt(cols[idIdx]);
-        const hVal    = cols[hlIdx]?.trim();
-        const aVal    = cols[hvIdx]?.trim();
+        const cols = parseCSVLine(lines[i]);
 
-        if (!matchId || hVal === '' || aVal === '' || hVal === undefined || aVal === undefined) {
-          skipped.push(i + 1); continue;
+        let ph, pa, matchId, localName, visitaName;
+
+        if (isNativo) {
+          // Formato nativo de Polla Malazos
+          const idIdx  = header.indexOf('id');
+          const hlIdx  = header.indexOf('goles_local');
+          const hvIdx  = header.indexOf('goles_visitante');
+          const locIdx = header.indexOf('local');
+          const visIdx = header.indexOf('visitante');
+
+          matchId    = parseInt(cols[idIdx]);
+          const hVal = cols[hlIdx]?.trim();
+          const aVal = cols[hvIdx]?.trim();
+          localName  = cols[locIdx]?.replace(/"/g,'').trim();
+          visitaName = cols[visIdx]?.replace(/"/g,'').trim();
+
+          if (!matchId || hVal === '' || aVal === '' || hVal === undefined || aVal === undefined) {
+            skipped.push(i + 1); continue;
+          }
+          ph = parseInt(hVal); pa = parseInt(aVal);
+
+        } else {
+          // Formato Futpolla — buscar partido por nombres de equipo + fecha UTC
+          const htIdx   = header.indexOf('home_team');
+          const atIdx   = header.indexOf('away_team');
+          const phIdx   = header.indexOf('predicted_home_score');
+          const paIdx   = header.indexOf('predicted_away_score');
+          const dtIdx   = header.indexOf('kickoff_at');
+
+          const homeRaw  = cols[htIdx]?.replace(/"/g,'').trim();
+          const awayRaw  = cols[atIdx]?.replace(/"/g,'').trim();
+          const phRaw    = cols[phIdx]?.trim();
+          const paRaw    = cols[paIdx]?.trim();
+          const kickoffZ = cols[dtIdx]?.replace(/"/g,'').trim(); // ISO UTC
+
+          if (!homeRaw || !awayRaw) { skipped.push(i + 1); continue; }
+          if (phRaw === '' || paRaw === '' || phRaw === undefined || paRaw === undefined) {
+            skipped.push(i + 1); continue; // sin pronóstico
+          }
+
+          ph = parseInt(phRaw); pa = parseInt(paRaw);
+          localName  = homeRaw;
+          visitaName = awayRaw;
+
+          // Normalizar nombre para comparar con nuestra DB
+          const norm = s => s.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+            .replace(/[^a-z]/g,'');
+
+          const normHome = norm(homeRaw);
+          const normAway = norm(awayRaw);
+
+          // Buscar en allMatches por nombre de equipo (fuzzy)
+          const match = allMatches.find(m => {
+            const dbHome = norm(getName(m.home));
+            const dbAway = norm(getName(m.away));
+            const hOk = dbHome.includes(normHome.slice(0,5)) || normHome.includes(dbHome.slice(0,5));
+            const aOk = dbAway.includes(normAway.slice(0,5)) || normAway.includes(dbAway.slice(0,5));
+            return hOk && aOk;
+          });
+
+          if (!match) {
+            errors.push(`Fila ${i+1}: no encontrado — ${homeRaw} vs ${awayRaw}`);
+            continue;
+          }
+
+          matchId = match.id;
         }
 
-        const ph = parseInt(hVal), pa = parseInt(aVal);
         if (isNaN(ph) || isNaN(pa) || ph < 0 || pa < 0 || ph > 30 || pa > 30) {
-          errors.push(`Fila ${i+1}: marcador inválido (${hVal}-${aVal})`); continue;
+          errors.push(`Fila ${i+1}: marcador inválido (${ph}-${pa})`); continue;
         }
 
         const match = allMatches.find(m => m.id === matchId);
         if (!match) { errors.push(`Fila ${i+1}: partido ID ${matchId} no encontrado`); continue; }
         if (match.status === 'finished' || match.status === 'live') { skipped.push(i+1); continue; }
 
-        csvParsed.push({
-          match_id:   matchId,
-          pred_home:  ph,
-          pred_away:  pa,
-          local:      cols[locIdx]?.replace(/"/g,'').trim() || '',
-          visita:     cols[visIdx]?.replace(/"/g,'').trim() || '',
-        });
+        csvParsed.push({ match_id: matchId, pred_home: ph, pred_away: pa, local: localName, visita: visitaName });
       }
 
       if (!csvParsed.length && !errors.length) {
-        setCSVStatus('⚠️ No se encontraron pronósticos válidos. Llena las columnas goles_local y goles_visitante.', true); return;
+        setCSVStatus('⚠️ No se encontraron pronósticos válidos. Verifica que las columnas de marcador estén llenas.', true);
+        return;
       }
       showCSVPreview(csvParsed, errors, skipped);
     } catch(err) {
