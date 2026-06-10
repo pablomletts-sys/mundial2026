@@ -631,6 +631,7 @@ body{
   <div class="tabs" id="adminTabs" style="margin-bottom:20px">
     <div class="tab active" onclick="adminTab('dashboard')">📊 Dashboard</div>
     <div class="tab" onclick="adminTab('results')">⚽ Resultados</div>
+    <div class="tab" onclick="adminTab('csv')">📥 Cargar CSV</div>
     <div class="tab" onclick="adminTab('users')">👥 Usuarios</div>
     <div class="tab" onclick="adminTab('picks')">🎯 Pronósticos</div>
   </div>
@@ -650,8 +651,55 @@ body{
     </div>
   </div>
 
-  <!-- RESULTS -->
-  <div id="adminResults" style="display:none">
+  <!-- CSV RESULTADOS -->
+  <div id="adminCsv" style="display:none">
+    <div style="background:rgba(224,48,48,0.06);border:1px solid rgba(224,48,48,0.2);border-radius:8px;padding:14px 18px;margin-bottom:18px;font-size:12px;color:#ff9090;line-height:1.5">
+      ⚠️ <strong>Solo para pruebas.</strong> Cargar resultados via CSV marca esos partidos como terminados y recalcula los puntos de todos los usuarios. Usalo para testear el sistema de puntuación.
+    </div>
+
+    <div style="background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;padding:22px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--chalk-dim);margin-bottom:10px">Formato del CSV</div>
+      <code style="font-size:11px;color:var(--chalk-dim);font-family:var(--mono);line-height:1.8;display:block">
+        match_id, fase, local, visitante, goles_local, goles_visitante<br>
+        1, Grupo A, México, Sudáfrica, 2, 0<br>
+        2, Grupo A, Corea del Sur, Chequia, 1, 1<br>
+        ...
+      </code>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+      <label style="background:var(--gold);color:#000;font-size:12px;font-weight:700;padding:8px 16px;border-radius:var(--radius);cursor:pointer">
+        📥 Seleccionar CSV de resultados
+        <input type="file" accept=".csv" onchange="loadResultsCSV(event)" style="display:none">
+      </label>
+      <div id="resultsCsvStatus" style="font-size:12px;color:var(--chalk-dim)"></div>
+    </div>
+
+    <!-- Preview -->
+    <div id="resultsCsvPreview" style="display:none">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--chalk-dim);margin-bottom:10px">
+        Vista previa — <span id="resultsCsvCount"></span>
+      </div>
+      <div style="background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:8px;overflow:hidden;margin-bottom:14px;max-height:400px;overflow-y:auto">
+        <table id="resultsCsvTable" style="width:100%;border-collapse:collapse;font-size:12px"></table>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="confirmResultsCSV()" id="resultsCsvConfirmBtn" class="save-result" style="padding:10px 20px;font-size:13px">
+          ✓ Aplicar resultados y recalcular puntos
+        </button>
+        <button onclick="cancelResultsCSV()" class="btn-sm ghost">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Reset option -->
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--card-bdr)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--chalk-dim);margin-bottom:10px">Reset de pruebas</div>
+      <button onclick="resetAllResults()" style="background:rgba(224,48,48,0.15);border:1px solid rgba(224,48,48,0.3);color:#ff7070;font-size:12px;font-weight:700;padding:8px 16px;border-radius:var(--radius);cursor:pointer">
+        🗑 Borrar todos los resultados (volver a scheduled)
+      </button>
+      <div style="font-size:11px;color:var(--chalk-dim);margin-top:6px">Útil para resetear después de una prueba. No borra los pronósticos de los usuarios.</div>
+    </div>
+  </div>
     <div class="tabs" id="adminResultsTabs" style="margin-bottom:16px">
       <div class="tab active" onclick="adminResultsTab('pending')">⏳ Pendientes</div>
       <div class="tab" onclick="adminResultsTab('done')">✅ Registrados</div>
@@ -1565,6 +1613,166 @@ function setCSVStatus(msg, isError = false) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// ADMIN — CARGA DE RESULTADOS VIA CSV
+// ══════════════════════════════════════════════════════════════════
+let resultsCsvParsed = [];
+
+function loadResultsCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const raw    = e.target.result.replace(/^\uFEFF/, '');
+      const lines  = raw.trim().split('\n');
+      const header = lines[0].split(',').map(h => h.trim().replace(/"/g,'').toLowerCase());
+
+      const idIdx  = header.indexOf('match_id');
+      const hlIdx  = header.indexOf('goles_local');
+      const hvIdx  = header.indexOf('goles_visitante');
+      const locIdx = header.indexOf('local');
+      const visIdx = header.indexOf('visitante');
+
+      if (idIdx < 0 || hlIdx < 0 || hvIdx < 0) {
+        setResultsCsvStatus('❌ Formato inválido. Necesita columnas: match_id, goles_local, goles_visitante', true);
+        return;
+      }
+
+      resultsCsvParsed = [];
+      const errors = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols    = parseCSVLine(lines[i]);
+        const matchId = parseInt(cols[idIdx]);
+        const hVal    = cols[hlIdx]?.trim();
+        const aVal    = cols[hvIdx]?.trim();
+        const local   = cols[locIdx]?.replace(/"/g,'').trim() || '';
+        const visita  = cols[visIdx]?.replace(/"/g,'').trim() || '';
+
+        if (!matchId) { errors.push(`Fila ${i+1}: match_id inválido`); continue; }
+        if (hVal === '' || aVal === '') { errors.push(`Fila ${i+1}: faltan goles`); continue; }
+
+        const ph = parseInt(hVal), pa = parseInt(aVal);
+        if (isNaN(ph) || isNaN(pa) || ph < 0 || pa > 30) {
+          errors.push(`Fila ${i+1}: marcador inválido`); continue;
+        }
+
+        const match = adminData.matches.find(m => m.id === matchId);
+        if (!match) { errors.push(`Fila ${i+1}: partido ID ${matchId} no encontrado`); continue; }
+
+        resultsCsvParsed.push({ match_id: matchId, result_home: ph, result_away: pa, local, visita });
+      }
+
+      if (!resultsCsvParsed.length) {
+        setResultsCsvStatus('❌ No se encontraron resultados válidos.', true); return;
+      }
+
+      // Mostrar preview
+      document.getElementById('resultsCsvCount').textContent =
+        `${resultsCsvParsed.length} resultados` + (errors.length ? ` · ${errors.length} errores ignorados` : '');
+
+      document.getElementById('resultsCsvTable').innerHTML = `
+        <thead>
+          <tr style="border-bottom:1px solid var(--card-bdr)">
+            <th style="text-align:left;padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase">ID</th>
+            <th style="text-align:left;padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase">Partido</th>
+            <th style="padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Resultado</th>
+            <th style="padding:8px 12px;color:var(--chalk-dim);font-size:10px;text-transform:uppercase;text-align:center">Estado actual</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${resultsCsvParsed.map(r => {
+            const m = adminData.matches.find(x => x.id === r.match_id);
+            const already = m?.status === 'finished';
+            return `<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+              <td style="padding:7px 12px;color:var(--chalk-dim);font-family:var(--mono)">${r.match_id}</td>
+              <td style="padding:7px 12px;color:var(--chalk)">${r.local || (m ? getName(m.home) : '?')} vs ${r.visita || (m ? getName(m.away) : '?')}</td>
+              <td style="padding:7px 12px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--gold)">${r.result_home} – ${r.result_away}</td>
+              <td style="padding:7px 12px;text-align:center;font-size:11px">
+                ${already
+                  ? `<span style="color:#f0a030">Sobreescribe (${m.result_home}–${m.result_away})</span>`
+                  : `<span style="color:var(--green)">Nuevo</span>`}
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>`;
+
+      document.getElementById('resultsCsvPreview').style.display = 'block';
+      setResultsCsvStatus('');
+
+    } catch(err) {
+      setResultsCsvStatus('❌ Error leyendo el archivo: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
+
+async function confirmResultsCSV() {
+  if (!resultsCsvParsed.length) return;
+  const btn = document.getElementById('resultsCsvConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Aplicando...';
+
+  let ok = 0, fail = 0;
+  for (const r of resultsCsvParsed) {
+    try {
+      await apiFetch('/matches/' + r.match_id, {
+        method: 'PUT',
+        body: JSON.stringify({ result_home: r.result_home, result_away: r.result_away })
+      });
+      ok++;
+    } catch(e) { fail++; console.error(r.match_id, e.message); }
+  }
+
+  cancelResultsCSV();
+  toast(`✅ ${ok} resultados aplicados${fail ? ` · ${fail} fallaron` : ''} — puntos recalculados`);
+  resultsCsvParsed = [];
+
+  // Recargar datos admin
+  const matches = await fetchMatches();
+  adminData.matches = matches;
+  const lb = await apiFetch('/leaderboard');
+  adminData.lb = lb;
+  renderAdminDashboard();
+  renderAdminResults();
+}
+
+function cancelResultsCSV() {
+  document.getElementById('resultsCsvPreview').style.display = 'none';
+  document.getElementById('resultsCsvTable').innerHTML = '';
+  resultsCsvParsed = [];
+  setResultsCsvStatus('');
+  const btn = document.getElementById('resultsCsvConfirmBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '✓ Aplicar resultados y recalcular puntos'; }
+}
+
+function setResultsCsvStatus(msg, isError = false) {
+  const el = document.getElementById('resultsCsvStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#ff7070' : 'var(--chalk-dim)';
+}
+
+async function resetAllResults() {
+  if (!confirm('¿Seguro? Esto borra TODOS los resultados y vuelve todos los partidos a "scheduled". Los pronósticos de los usuarios se mantienen pero los puntos se resetean a null.')) return;
+
+  // Reset matches via Supabase — necesitamos un endpoint admin
+  try {
+    await apiFetch('/admin/reset-results', { method: 'POST' });
+    toast('✓ Todos los resultados borrados — partidos vueltos a scheduled');
+    const matches = await fetchMatches();
+    adminData.matches = matches;
+    renderAdminDashboard();
+    renderAdminResults();
+  } catch(e) {
+    // Fallback: mostrar SQL para hacerlo manual en Supabase
+    toast('Ejecuta esto en Supabase SQL: UPDATE matches SET result_home=NULL, result_away=NULL, status=\'scheduled\' WHERE group_label IS NOT NULL; UPDATE predictions SET points=NULL;', true);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 // ADMIN PANEL (home widget)
 // ══════════════════════════════════════════════════════════════════
 function renderAdmin(matches) {
@@ -1736,9 +1944,9 @@ let adminResultsMode = 'pending';
 
 function adminTab(tab) {
   document.querySelectorAll('#adminTabs .tab').forEach((t,i) => {
-    t.classList.toggle('active', ['dashboard','results','users','picks'][i] === tab);
+    t.classList.toggle('active', ['dashboard','results','csv','users','picks'][i] === tab);
   });
-  ['adminDashboard','adminResults','adminUsers','adminPicks'].forEach(id => {
+  ['adminDashboard','adminResults','adminCsv','adminUsers','adminPicks'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
