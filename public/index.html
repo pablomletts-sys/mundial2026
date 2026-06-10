@@ -412,6 +412,44 @@ body{
       <div class="form-group"><label>Contraseña</label><input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()"></div>
       <button class="btn-full" id="authBtn" onclick="doAuth()">Crear cuenta</button>
       <div class="auth-toggle" id="authToggle">¿Ya tienes cuenta? <a onclick="toggleAuth()">Iniciar sesión</a></div>
+      <div style="text-align:center;margin-top:10px">
+        <a onclick="showForgot()" style="font-size:11px;color:var(--chalk-dim);cursor:pointer;text-decoration:underline">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+
+      <!-- MODAL RECUPERAR CONTRASEÑA -->
+      <div id="forgotModal" style="display:none;margin-top:20px;padding-top:18px;border-top:1px solid var(--card-bdr)">
+        <div style="font-size:13px;font-weight:600;color:var(--chalk);margin-bottom:12px">Recuperar contraseña</div>
+        <div class="error-msg" id="forgotError"></div>
+        <div id="forgotSuccess" style="display:none;background:rgba(45,184,96,0.1);border:1px solid rgba(45,184,96,0.3);color:var(--green);padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:12px"></div>
+        <div class="form-group">
+          <label>Tu email</label>
+          <input type="email" id="forgotEmail" placeholder="tu@email.com">
+        </div>
+        <button class="btn-full" id="forgotBtn" onclick="sendReset()" style="margin-top:4px">
+          Enviar enlace de recuperación
+        </button>
+        <div style="text-align:center;margin-top:10px">
+          <a onclick="hideForgot()" style="font-size:11px;color:var(--chalk-dim);cursor:pointer">← Volver al login</a>
+        </div>
+      </div>
+
+      <!-- PANTALLA NUEVA CONTRASEÑA (cuando viene del email) -->
+      <div id="resetModal" style="display:none;margin-top:20px;padding-top:18px;border-top:1px solid var(--card-bdr)">
+        <div style="font-size:13px;font-weight:600;color:var(--chalk);margin-bottom:4px">Nueva contraseña</div>
+        <div style="font-size:11px;color:var(--chalk-dim);margin-bottom:14px">Elige una contraseña nueva para tu cuenta</div>
+        <div class="error-msg" id="resetError"></div>
+        <div class="form-group">
+          <label>Nueva contraseña</label>
+          <input type="password" id="resetPass" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label>Confirmar contraseña</label>
+          <input type="password" id="resetPass2" placeholder="Repite la contraseña">
+        </div>
+        <button class="btn-full" id="resetBtn" onclick="confirmReset()">Cambiar contraseña</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1096,6 +1134,99 @@ async function savePodium() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// RECUPERACIÓN DE CONTRASEÑA
+// ══════════════════════════════════════════════════════════════════
+function showForgot() {
+  document.getElementById('forgotModal').style.display = 'block';
+  document.getElementById('resetModal').style.display = 'none';
+  document.getElementById('forgotError').style.display = 'none';
+  document.getElementById('forgotSuccess').style.display = 'none';
+}
+
+function hideForgot() {
+  document.getElementById('forgotModal').style.display = 'none';
+}
+
+async function sendReset() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  const btn = document.getElementById('forgotBtn');
+  const errEl = document.getElementById('forgotError');
+  const okEl = document.getElementById('forgotSuccess');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+
+  if (!email) { errEl.textContent = 'Ingresa tu email'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    await apiFetch('/auth/reset-request', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+    okEl.textContent = '✓ Si el email está registrado, recibirás un enlace en los próximos minutos. Revisa también tu carpeta de spam.';
+    okEl.style.display = 'block';
+    btn.style.display = 'none';
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Enviar enlace de recuperación';
+  }
+}
+
+async function confirmReset() {
+  const token = new URLSearchParams(window.location.search).get('reset');
+  const pass  = document.getElementById('resetPass').value;
+  const pass2 = document.getElementById('resetPass2').value;
+  const btn   = document.getElementById('resetBtn');
+  const errEl = document.getElementById('resetError');
+  errEl.style.display = 'none';
+
+  if (!pass || pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (pass !== pass2) { errEl.textContent = 'Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    await apiFetch('/auth/reset-confirm', {
+      method: 'POST',
+      body: JSON.stringify({ token, password: pass })
+    });
+    // Limpiar URL y mostrar login
+    window.history.replaceState({}, '', window.location.pathname);
+    document.getElementById('resetModal').style.display = 'none';
+    toast('✓ Contraseña cambiada. Ya puedes iniciar sesión.');
+    authMode = 'login';
+    toggleAuth();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Cambiar contraseña';
+  }
+}
+
+// Detectar token de reset en URL al cargar
+function checkResetToken() {
+  const token = new URLSearchParams(window.location.search).get('reset');
+  if (!token) return;
+  // Mostrar pantalla de nueva contraseña
+  document.getElementById('resetModal').style.display = 'block';
+  document.getElementById('forgotModal').style.display = 'none';
+  authMode = 'login';
+  document.getElementById('authTitle').textContent = 'NUEVA CONTRASEÑA';
+  document.getElementById('authSub').textContent = 'Elige una nueva contraseña para tu cuenta';
+  document.getElementById('regFields').style.display = 'none';
+  document.getElementById('authEmail').closest('.form-group').style.display = 'none';
+  document.getElementById('authPass').closest('.form-group').style.display = 'none';
+  document.getElementById('authBtn').style.display = 'none';
+  document.getElementById('authToggle').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════
 // MINI LEADERBOARD (home)
 // ══════════════════════════════════════════════════════════════════
 async function renderMiniLeaderboard() {
@@ -1255,6 +1386,7 @@ function toast(msg, isError = false) {
 // INIT
 // ══════════════════════════════════════════════════════════════════
 loadSession();
+checkResetToken();
 if (currentUser && authToken) {
   onLogin();
 }
