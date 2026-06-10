@@ -2,7 +2,7 @@
 // GET /api/admin/users        → lista todos los usuarios con stats
 // GET /api/admin/picks?user_id=xxx → picks de un usuario específico
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from './_supabase.js';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mundial2026-secret';
@@ -35,11 +35,7 @@ export const handler = async (event) => {
   const admin = requireAdmin(event);
   if (!admin) return cors({ error: 'No autorizado' }, 403);
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
-    { auth: { persistSession: false }, global: { fetch } }
-  );
+  const supabase = getSupabase();
 
   const path = event.path.replace(/.*\/admin/, '');
 
