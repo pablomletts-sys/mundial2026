@@ -1141,55 +1141,18 @@ function shareWhatsApp() {
 const oddsCache = {};
 
 async function fetchOdds(matchId, homeTeam, awayTeam) {
-  if (oddsCache[matchId]) return oddsCache[matchId];
+  if (oddsCache[matchId] !== undefined) return oddsCache[matchId];
+  oddsCache[matchId] = null; // marcar como consultado
 
   try {
-    // The Odds API — sport_key para FIFA World Cup es 'soccer_fifa_world_cup'
-    const ODDS_KEY = 'b0da31702b1614ef847d55c0cd7ddc7f'; // free tier: 500 req/mes
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds/?apiKey=${ODDS_KEY}&regions=eu&markets=h2h&oddsFormat=decimal`
+      `/api/odds?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
     );
     if (!res.ok) return null;
     const data = await res.json();
-
-    // Normalizar nombre para matching
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
-    const hn = norm(homeTeam), an = norm(awayTeam);
-
-    const event = data.find(e => {
-      const h = norm(e.home_team), a = norm(e.away_team);
-      return (h.includes(hn.slice(0,5)) || hn.includes(h.slice(0,5))) &&
-             (a.includes(an.slice(0,5)) || an.includes(a.slice(0,5)));
-    });
-
-    if (!event || !event.bookmakers.length) return null;
-
-    // Usar el primer bookmaker disponible (Bet365 si existe, si no el primero)
-    const bm = event.bookmakers.find(b => b.key === 'bet365') || event.bookmakers[0];
-    const h2h = bm.markets.find(m => m.key === 'h2h');
-    if (!h2h) return null;
-
-    const outcomes = h2h.outcomes;
-    const homeOdd = outcomes.find(o => norm(o.name).includes(hn.slice(0,4)))?.price;
-    const awayOdd = outcomes.find(o => norm(o.name).includes(an.slice(0,4)))?.price;
-    const drawOdd = outcomes.find(o => norm(o.name) === 'draw')?.price;
-
-    if (!homeOdd || !awayOdd) return null;
-
-    // Convertir cuotas decimales a probabilidades implícitas
-    const pHome = homeOdd ? 1/homeOdd : 0;
-    const pDraw = drawOdd ? 1/drawOdd : 0;
-    const pAway = awayOdd ? 1/awayOdd : 0;
-    const total = pHome + pDraw + pAway;
-
-    const result = {
-      home:  Math.round(pHome/total*100),
-      draw:  Math.round(pDraw/total*100),
-      away:  Math.round(pAway/total*100),
-      source: bm.title
-    };
-    oddsCache[matchId] = result;
-    return result;
+    if (!data.found) return null;
+    oddsCache[matchId] = data;
+    return data;
   } catch(e) {
     return null;
   }
