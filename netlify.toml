@@ -45,6 +45,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/odds"
+  to = "/.netlify/functions/odds"
+  status = 200
+
+[[redirects]]
   from = "/api/webhook-results"
   to = "/.netlify/functions/webhook-results"
   status = 200
