@@ -1444,9 +1444,14 @@ function uploadPicksCSV(event) {
           const match = allMatches.find(m => {
             const dbHome = normDB(getName(m.home)).replace(/\s/g,'');
             const dbAway = normDB(getName(m.away)).replace(/\s/g,'');
+            // Match directo
             const hOk = dbHome.startsWith(homeKey.slice(0,6)) || homeKey.startsWith(dbHome.slice(0,6));
             const aOk = dbAway.startsWith(awayKey.slice(0,6)) || awayKey.startsWith(dbAway.slice(0,6));
-            return hOk && aOk;
+            if (hOk && aOk) return true;
+            // Match invertido (algunos CSV tienen home/away al revés)
+            const hOk2 = dbHome.startsWith(awayKey.slice(0,6)) || awayKey.startsWith(dbHome.slice(0,6));
+            const aOk2 = dbAway.startsWith(homeKey.slice(0,6)) || homeKey.startsWith(dbAway.slice(0,6));
+            return hOk2 && aOk2;
           });
 
           if (!match) {
