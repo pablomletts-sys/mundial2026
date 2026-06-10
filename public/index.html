@@ -366,6 +366,47 @@ body{
 .my-stat-num{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--gold)}
 .my-stat-label{font-size:10px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
 
+/* ─── ADMIN PANEL ─────────────────────────────────────────── */
+.admin-stat{background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;padding:16px;text-align:center}
+.admin-stat-num{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--gold)}
+.admin-stat-label{font-size:10px;color:var(--chalk-dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.admin-result-row{
+  display:grid;grid-template-columns:1fr auto 1fr auto;
+  gap:10px;align-items:center;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.admin-result-row:last-child{border:none}
+.score-in{
+  width:42px;background:rgba(255,255,255,0.06);border:1px solid var(--card-bdr);
+  border-radius:4px;color:var(--chalk);font-family:var(--mono);
+  font-size:17px;font-weight:600;text-align:center;padding:5px;outline:none;
+}
+.score-in:focus{border-color:var(--gold)}
+.save-result{
+  background:var(--green);color:#000;border:none;border-radius:4px;
+  font-weight:700;font-size:11px;padding:6px 12px;cursor:pointer;transition:opacity 0.2s;
+}
+.save-result:hover{opacity:0.8}
+.done-badge{font-family:var(--mono);font-size:13px;color:var(--green);font-weight:600}
+.user-row-admin td{padding:11px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.role-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
+  border:1px solid;
+}
+.role-admin{background:rgba(255,100,50,0.12);border-color:rgba(255,100,50,0.3);color:#ff9060}
+.role-user{background:rgba(255,255,255,0.04);border-color:var(--card-bdr);color:var(--chalk-dim)}
+.pick-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:var(--card-bg);border:1px solid var(--card-bdr);
+  border-radius:var(--radius);font-size:12px;margin-bottom:4px;
+}
+.pick-match{color:var(--chalk-dim);flex:1}
+.pick-pred{font-family:var(--mono);font-weight:700;color:var(--chalk)}
+.pick-result{font-family:var(--mono);color:var(--chalk-dim)}
+.pick-pts.p3{color:var(--gold)}
+.pick-pts.p5,.pick-pts.p6{color:var(--green)}
+.pick-pts.p0{color:rgba(255,255,255,0.2)}
+
 /* ─── MOBILE ─────────────────────────────────────────────── */
 @media(max-width:600px){
   .topbar{padding:0 12px}
@@ -390,6 +431,7 @@ body{
     <button class="nav-btn" onclick="goPage('leaderboard')" data-page="leaderboard">🏆 <span class="label">Tabla</span></button>
     <button class="nav-btn" onclick="goPage('mispicks')" data-page="mispicks">👤 <span class="label">Mis picks</span></button>
     <button class="nav-btn" onclick="goPage('rules')" data-page="rules">📋 <span class="label">Reglas</span></button>
+    <button class="nav-btn admin-only" onclick="goPage('admin')" data-page="admin" style="display:none;color:#ff9060">⚙️ <span class="label">Admin</span></button>
   </nav>
   <div class="user-area" id="userArea">
     <button class="btn-sm" onclick="goPage('auth')">Entrar</button>
@@ -535,6 +577,76 @@ body{
   <!-- Picks list -->
   <div class="section-head" style="margin-bottom:14px"><h2>PARTIDOS</h2></div>
   <div class="matches-grid" id="myPicksGrid"><div class="loading-msg"><span class="spinner"></span> Cargando…</div></div>
+</div>
+
+<!-- ══ ADMIN ══════════════════════════════════════════════ -->
+<div class="page" id="page-admin">
+  <div class="section-head">
+    <h2>⚙️ PANEL ADMIN</h2>
+    <p>Polla Malazos · Vista completa</p>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" id="adminTabs" style="margin-bottom:20px">
+    <div class="tab active" onclick="adminTab('dashboard')">📊 Dashboard</div>
+    <div class="tab" onclick="adminTab('results')">⚽ Resultados</div>
+    <div class="tab" onclick="adminTab('users')">👥 Usuarios</div>
+    <div class="tab" onclick="adminTab('picks')">🎯 Pronósticos</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="adminDashboard">
+    <div id="adminStatsGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="section-head" style="margin-bottom:12px"><h2>TOP 5</h2></div>
+        <div id="adminTop5"></div>
+      </div>
+      <div>
+        <div class="section-head" style="margin-bottom:12px"><h2>ÚLTIMOS RESULTADOS</h2></div>
+        <div id="adminLastResults"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="adminResults" style="display:none">
+    <div class="tabs" id="adminResultsTabs" style="margin-bottom:16px">
+      <div class="tab active" onclick="adminResultsTab('pending')">⏳ Pendientes</div>
+      <div class="tab" onclick="adminResultsTab('done')">✅ Registrados</div>
+    </div>
+    <div id="adminResultsContent"></div>
+  </div>
+
+  <!-- USERS -->
+  <div id="adminUsers" style="display:none">
+    <div style="background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;overflow:hidden">
+      <table class="lb-table" style="width:100%">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Email</th>
+            <th>Registro</th>
+            <th>Picks</th>
+            <th>Pts</th>
+            <th>Rol</th>
+          </tr>
+        </thead>
+        <tbody id="adminUsersTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PICKS -->
+  <div id="adminPicks" style="display:none">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select id="adminPicksUser" onchange="loadAdminPicks()" style="background:var(--card-bg);border:1px solid var(--card-bdr);color:var(--chalk);padding:8px 12px;border-radius:var(--radius);font-family:var(--body);font-size:13px;outline:none">
+        <option value="">— Selecciona un usuario —</option>
+      </select>
+      <span id="adminPicksStats" style="font-size:12px;color:var(--chalk-dim)"></span>
+    </div>
+    <div id="adminPicksContent" class="matches-grid"></div>
+  </div>
 </div>
 
 <!-- ══ RULES ══════════════════════════════════════════════ -->
@@ -693,7 +805,10 @@ function onLogin() {
   document.getElementById('userArea').innerHTML = `
     <div class="user-chip">⚽ ${currentUser.name.split(' ')[0]}</div>
     <button class="btn-sm ghost" onclick="doLogout()">Salir</button>`;
-  if (currentUser.role === 'admin') document.getElementById('adminSection').style.display = 'block';
+  if (currentUser.role === 'admin') {
+    document.getElementById('adminSection').style.display = 'block';
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+  }
   goPage('home');
   toast('¡Bienvenido, ' + currentUser.name.split(' ')[0] + '! 🏆');
 }
@@ -704,6 +819,7 @@ function doLogout() {
   document.getElementById('mainNav').style.display = 'none';
   document.getElementById('userArea').innerHTML = `<button class="btn-sm" onclick="goPage('auth')">Entrar</button>`;
   document.getElementById('adminSection').style.display = 'none';
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
   allMatches = [];
   goPage('auth');
 }
@@ -720,6 +836,7 @@ function goPage(name) {
   if (name === 'fixtures')    renderFixtures(activeGroup);
   if (name === 'leaderboard') renderLeaderboard();
   if (name === 'mispicks')    renderMisPicks();
+  if (name === 'admin')       renderAdminPanel();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1196,6 +1313,231 @@ async function savePodium() {
   } catch(e) {
     toast(e.message, true);
     btn.disabled = false; btn.textContent = 'Guardar podio';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════════════════════════
+let adminData = { matches: [], users: [], lb: [] };
+let adminResultsMode = 'pending';
+
+function adminTab(tab) {
+  document.querySelectorAll('#adminTabs .tab').forEach((t,i) => {
+    t.classList.toggle('active', ['dashboard','results','users','picks'][i] === tab);
+  });
+  ['adminDashboard','adminResults','adminUsers','adminPicks'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
+}
+
+function adminResultsTab(mode) {
+  adminResultsMode = mode;
+  document.querySelectorAll('#adminResultsTabs .tab').forEach((t,i) => {
+    t.classList.toggle('active', ['pending','done'][i] === mode);
+  });
+  renderAdminResults();
+}
+
+async function renderAdminPanel() {
+  if (!currentUser || currentUser.role !== 'admin') { goPage('home'); return; }
+
+  try {
+    const [matches, lb] = await Promise.all([fetchMatches(), apiFetch('/leaderboard')]);
+
+    // Fetch all users via admin endpoint
+    let users = [];
+    try { users = await apiFetch('/admin/users'); } catch(e) { console.warn('No admin/users endpoint yet'); }
+
+    adminData = { matches, lb, users };
+
+    renderAdminDashboard();
+    renderAdminResults();
+    renderAdminUsers();
+    populateAdminPicksUsers();
+
+  } catch(e) {
+    console.error('Admin error:', e);
+  }
+}
+
+function renderAdminDashboard() {
+  const { matches, lb } = adminData;
+  const finished  = matches.filter(m => m.status === 'finished').length;
+  const total     = matches.length;
+  const totalPts  = lb.reduce((s, u) => s + u.total_points, 0);
+  const avgPts    = lb.length ? Math.round(totalPts / lb.length) : 0;
+  const withPicks = lb.filter(u => u.predicted > 0).length;
+
+  document.getElementById('adminStatsGrid').innerHTML = `
+    <div class="admin-stat"><div class="admin-stat-num">${lb.length}</div><div class="admin-stat-label">Participantes</div></div>
+    <div class="admin-stat"><div class="admin-stat-num">${withPicks}</div><div class="admin-stat-label">Con pronósticos</div></div>
+    <div class="admin-stat"><div class="admin-stat-num">${finished}/${total}</div><div class="admin-stat-label">Partidos jugados</div></div>
+    <div class="admin-stat"><div class="admin-stat-num">${avgPts}</div><div class="admin-stat-label">Pts promedio</div></div>`;
+
+  // Top 5
+  document.getElementById('adminTop5').innerHTML = lb.slice(0,5).map((u,i) => `
+    <div class="mini-lb-row" style="margin-bottom:5px">
+      <div class="mini-rank ${i<3?'top':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)}</div>
+      <div class="mini-avatar">${u.name[0].toUpperCase()}</div>
+      <div class="mini-name">${u.name}</div>
+      <div style="text-align:right"><div class="mini-pts">${u.total_points}</div><div class="mini-pts-label">pts</div></div>
+    </div>`).join('') || '<div class="empty-msg">Sin datos</div>';
+
+  // Last 5 finished matches
+  const done = adminData.matches.filter(m => m.status === 'finished').slice(-5).reverse();
+  document.getElementById('adminLastResults').innerHTML = done.map(m => `
+    <div class="mini-lb-row" style="margin-bottom:5px;gap:6px">
+      <div style="flex:1;font-size:11px;color:var(--chalk-dim)">${getName(m.home)} vs ${getName(m.away)}</div>
+      <div style="font-family:var(--mono);font-weight:700;color:var(--gold)">${m.result_home}–${m.result_away}</div>
+    </div>`).join('') || '<div class="empty-msg">Sin resultados aún</div>';
+}
+
+function renderAdminResults() {
+  const { matches } = adminData;
+  const pending = matches.filter(m => m.status !== 'finished');
+  const done    = matches.filter(m => m.status === 'finished').reverse();
+  const list    = adminResultsMode === 'pending' ? pending : done;
+
+  if (!list.length) {
+    document.getElementById('adminResultsContent').innerHTML =
+      `<div class="empty-msg">${adminResultsMode === 'pending' ? '¡Todos los partidos tienen resultado! ✓' : 'No hay resultados registrados aún'}</div>`;
+    return;
+  }
+
+  document.getElementById('adminResultsContent').innerHTML = `
+    <div style="background:var(--card-bg);border:1px solid var(--card-bdr);border-radius:10px;padding:20px">
+      ${list.map(m => adminResultsMode === 'pending' ? pendingRow(m) : doneRow(m)).join('')}
+    </div>`;
+}
+
+function pendingRow(m) {
+  const { date: d } = fmtMatchTime(m.match_date, m.kickoff_time);
+  return `
+  <div class="admin-result-row" id="ar${m.id}">
+    <div>
+      <div style="font-size:11px;color:var(--chalk-dim);margin-bottom:2px">${d} · ${m.phase}</div>
+      <div style="font-size:13px;font-weight:600">${getFlag(m.home)} ${getName(m.home)}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input class="score-in" id="ah${m.id}" type="number" min="0" max="30" placeholder="0">
+      <span style="color:var(--chalk-dim);font-family:var(--mono)">–</span>
+      <input class="score-in" id="aa${m.id}" type="number" min="0" max="30" placeholder="0">
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--chalk-dim);margin-bottom:2px">📍 ${m.venue || ''}</div>
+      <div style="font-size:13px;font-weight:600">${getName(m.away)} ${getFlag(m.away)}</div>
+    </div>
+    <button class="save-result" onclick="adminSaveResult(${m.id})">Registrar ✓</button>
+  </div>`;
+}
+
+function doneRow(m) {
+  const { date: d } = fmtMatchTime(m.match_date, m.kickoff_time);
+  return `
+  <div class="admin-result-row" id="ar${m.id}">
+    <div style="font-size:13px;font-weight:600">${getFlag(m.home)} ${getName(m.home)}</div>
+    <div class="done-badge">${m.result_home} – ${m.result_away}</div>
+    <div style="font-size:13px;font-weight:600;text-align:right">${getName(m.away)} ${getFlag(m.away)}</div>
+    <div style="font-size:10px;color:var(--chalk-dim);text-align:right">${d}<br>
+      <button onclick="adminEditResult(${m.id})" style="background:none;border:none;color:var(--chalk-dim);cursor:pointer;font-size:10px;text-decoration:underline;padding:0;margin-top:2px">editar</button>
+    </div>
+  </div>`;
+}
+
+async function adminSaveResult(matchId) {
+  const h = parseInt(document.getElementById('ah' + matchId)?.value);
+  const a = parseInt(document.getElementById('aa' + matchId)?.value);
+  if (isNaN(h) || isNaN(a)) { toast('Ingresa el resultado ⚠️', true); return; }
+
+  try {
+    await apiFetch('/matches/' + matchId, {
+      method: 'PUT',
+      body: JSON.stringify({ result_home: h, result_away: a })
+    });
+    toast(`✓ ${h}–${a} registrado · puntos recalculados`);
+    // Refresh data
+    const matches = await fetchMatches();
+    adminData.matches = matches;
+    const lb = await apiFetch('/leaderboard');
+    adminData.lb = lb;
+    renderAdminDashboard();
+    renderAdminResults();
+  } catch(e) { toast(e.message, true); }
+}
+
+function adminEditResult(matchId) {
+  const row = document.getElementById('ar' + matchId);
+  const m = adminData.matches.find(x => x.id === matchId);
+  if (!row || !m) return;
+  row.innerHTML = pendingRow(m).replace(`id="ar${matchId}"`, '').replace(/<div class="admin-result-row"[^>]*>/, '');
+  // Re-fill with current values
+  const hEl = document.getElementById('ah' + matchId);
+  const aEl = document.getElementById('aa' + matchId);
+  if (hEl) hEl.value = m.result_home ?? '';
+  if (aEl) aEl.value = m.result_away ?? '';
+}
+
+function renderAdminUsers() {
+  const { lb } = adminData;
+  if (!lb.length) {
+    document.getElementById('adminUsersTable').innerHTML =
+      '<tr><td colspan="6"><div class="empty-msg">Sin usuarios</div></td></tr>';
+    return;
+  }
+
+  document.getElementById('adminUsersTable').innerHTML = lb.map((u, i) => `
+    <tr class="user-row-admin">
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="mini-avatar">${u.name[0].toUpperCase()}</div>
+          <div style="font-weight:600">${u.name}</div>
+        </div>
+      </td>
+      <td style="color:var(--chalk-dim)">${u.email}</td>
+      <td style="color:var(--chalk-dim)">—</td>
+      <td><span style="font-family:var(--mono);color:var(--chalk)">${u.predicted}</span></td>
+      <td><span style="font-family:var(--mono);color:var(--gold);font-weight:700">${u.total_points}</span></td>
+      <td><span class="role-badge ${u.email.includes('admin') ? 'role-admin' : 'role-user'}">${u.email.includes('admin') ? 'admin' : 'user'}</span></td>
+    </tr>`).join('');
+}
+
+function populateAdminPicksUsers() {
+  const { lb } = adminData;
+  const sel = document.getElementById('adminPicksUser');
+  sel.innerHTML = '<option value="">— Selecciona un usuario —</option>' +
+    lb.map(u => `<option value="${u.id}" data-email="${u.email}" data-name="${u.name}">${u.name} (${u.total_points} pts)</option>`).join('');
+}
+
+async function loadAdminPicks() {
+  const sel = document.getElementById('adminPicksUser');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) { document.getElementById('adminPicksContent').innerHTML = ''; return; }
+
+  const userId = opt.value;
+  const userName = opt.dataset.name;
+  document.getElementById('adminPicksContent').innerHTML = '<div class="loading-msg" style="grid-column:1/-1"><span class="spinner"></span> Cargando…</div>';
+
+  try {
+    // Fetch matches with this user's predictions via admin endpoint
+    const matches = await apiFetch(`/admin/picks?user_id=${userId}`);
+    const u = adminData.lb.find(x => x.id === userId);
+
+    document.getElementById('adminPicksStats').textContent =
+      u ? `${u.predicted} pronósticos · ${u.exact} exactos · ${u.total_points} pts` : '';
+
+    const withPick = matches.filter(m => m.my_prediction);
+    const withResult = withPick.filter(m => m.status === 'finished');
+    const pending = withPick.filter(m => m.status !== 'finished');
+
+    document.getElementById('adminPicksContent').innerHTML =
+      [...withResult.reverse(), ...pending].map(matchCardHTML).join('') ||
+      `<div class="empty-msg" style="grid-column:1/-1">${userName} no tiene pronósticos aún</div>`;
+
+  } catch(e) {
+    document.getElementById('adminPicksContent').innerHTML =
+      `<div class="empty-msg" style="grid-column:1/-1">Error: ${e.message}</div>`;
   }
 }
 
