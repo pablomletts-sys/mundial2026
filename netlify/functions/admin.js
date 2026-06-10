@@ -104,14 +104,26 @@ export const handler = async (event) => {
 
   // ── POST /admin/reset-results ─────────────────────────────
   if ((path === '/reset-results' || rawPath.includes('reset-results')) && event.httpMethod === 'POST') {
-    await supabase
-      .from('matches')
-      .update({ result_home: null, result_away: null, status: 'scheduled' })
-      .not('group_label', 'is', null); // solo partidos de grupos
-    await supabase
-      .from('predictions')
-      .update({ points: null });
-    return cors({ ok: true });
+    try {
+      const { error: e1 } = await supabase
+        .from('predictions')
+        .update({ points: null })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // update all
+
+      if (e1) console.error('reset predictions error:', e1.message);
+
+      const { error: e2 } = await supabase
+        .from('matches')
+        .update({ result_home: null, result_away: null, status: 'scheduled' })
+        .not('group_label', 'is', null);
+
+      if (e2) console.error('reset matches error:', e2.message);
+
+      return cors({ ok: true, predictions_reset: !e1, matches_reset: !e2 });
+    } catch(err) {
+      console.error('reset-results crash:', err.message);
+      return cors({ error: err.message }, 500);
+    }
   }
 
   return cors({ error: 'Not found' }, 404);
