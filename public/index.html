@@ -1327,7 +1327,7 @@ function uploadPicksCSV(event) {
           ph = parseInt(hVal); pa = parseInt(aVal);
 
         } else {
-          // Formato Futpolla — buscar partido por nombres de equipo + fecha UTC
+          // Formato Futpolla — matching por fecha UTC del kickoff
           const htIdx   = header.indexOf('home_team');
           const atIdx   = header.indexOf('away_team');
           const phIdx   = header.indexOf('predicted_home_score');
@@ -1338,18 +1338,17 @@ function uploadPicksCSV(event) {
           const awayRaw  = cols[atIdx]?.replace(/"/g,'').trim();
           const phRaw    = cols[phIdx]?.trim();
           const paRaw    = cols[paIdx]?.trim();
-          const kickoffZ = cols[dtIdx]?.replace(/"/g,'').trim(); // ISO UTC
+          const kickoffZ = cols[dtIdx]?.replace(/"/g,'').trim();
 
           if (!homeRaw || !awayRaw) { skipped.push(i + 1); continue; }
           if (phRaw === '' || paRaw === '' || phRaw === undefined || paRaw === undefined) {
-            skipped.push(i + 1); continue; // sin pronóstico
+            skipped.push(i + 1); continue;
           }
 
           ph = parseInt(phRaw); pa = parseInt(paRaw);
           localName  = homeRaw;
           visitaName = awayRaw;
 
-          // Normalizar nombre para comparar con nuestra DB
           const norm = s => s.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
             .replace(/[^a-z]/g,'');
@@ -1357,14 +1356,59 @@ function uploadPicksCSV(event) {
           const normHome = norm(homeRaw);
           const normAway = norm(awayRaw);
 
-          // Buscar en allMatches por nombre de equipo (fuzzy)
-          const match = allMatches.find(m => {
-            const dbHome = norm(getName(m.home));
-            const dbAway = norm(getName(m.away));
-            const hOk = dbHome.includes(normHome.slice(0,5)) || normHome.includes(dbHome.slice(0,5));
-            const aOk = dbAway.includes(normAway.slice(0,5)) || normAway.includes(dbAway.slice(0,5));
-            return hOk && aOk;
-          });
+          // Primero intentar match por fecha UTC del kickoff (más preciso)
+          let match = null;
+
+          if (kickoffZ) {
+            const kickoffDate = new Date(kickoffZ);
+            // Buscar partido cuyo kickoff UTC coincida (±30 min de tolerancia)
+            match = allMatches.find(m => {
+              if (!m.kickoff_time || !m.match_date) return false;
+              // Reconstruir UTC del partido de nuestra DB
+              const naive = new Date(`${m.match_date}T${m.kickoff_time}:00Z`);
+              const etParts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/New_York',
+                hour: '2-digit', minute: '2-digit', hour12: false
+              }).formatToParts(naive);
+              const etH = parseInt(etParts.find(p => p.type === 'hour')?.value || '0');
+              const etM = parseInt(etParts.find(p => p.type === 'minute')?.value || '0');
+              const [wH, wM] = m.kickoff_time.split(':').map(Number);
+              const diffMin = (wH * 60 + wM) - (etH * 60 + etM);
+              const matchUTC = new Date(naive.getTime() + diffMin * 60000);
+              const diffMs = Math.abs(matchUTC - kickoffDate);
+              return diffMs < 30 * 60 * 1000; // ±30 min
+            });
+          }
+
+          // Fallback: match por nombre de equipos si no encontramos por fecha
+          if (!match) {
+            match = allMatches.find(m => {
+              const dbHome = norm(getName(m.home));
+              const dbAway = norm(getName(m.away));
+              // Mapeo de nombres comunes en inglés → español
+              const aliases = {
+                'mexico': ['mexico', 'mxico'],
+                'southafrica': ['sudafrica'],
+                'korearepublic': ['coreadelsurc', 'coreadelsur'],
+                'czechrepublic': ['chequia','republicacheca'],
+                'bosniaandherzegovina': ['bosniaherzegovina','bosniayherzegovina'],
+                'cotedivoire': ['costademarfil','costadmarfil'],
+                'capeverdeislands': ['caboverde'],
+                'congodr': ['drcongo','rdcongo'],
+                'england': ['inglaterra'],
+                'unitedstates': ['estadosunidos','eeuu'],
+              };
+              const resolveAlias = (n) => {
+                const key = norm(n).replace(/\s/g,'');
+                return aliases[key] || [key];
+              };
+              const homeAliases = resolveAlias(homeRaw);
+              const awayAliases = resolveAlias(awayRaw);
+              const hOk = homeAliases.some(a => dbHome.includes(a.slice(0,5)) || a.includes(dbHome.slice(0,5)));
+              const aOk = awayAliases.some(a => dbAway.includes(a.slice(0,5)) || a.includes(dbAway.slice(0,5)));
+              return hOk && aOk;
+            });
+          }
 
           if (!match) {
             errors.push(`Fila ${i+1}: no encontrado — ${homeRaw} vs ${awayRaw}`);
