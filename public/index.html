@@ -736,8 +736,76 @@ async function fetchMatches() {
 function getFlag(s) { return s.split(' ')[0]; }
 function getName(s) { return s.replace(/^\S+\s/, ''); }
 
+// ══════════════════════════════════════════════════════════════════
+// TIMEZONE — convierte horarios de ET a la zona del usuario
+// Los kickoff_time están guardados en ET (America/New_York)
+// ══════════════════════════════════════════════════════════════════
+const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Detecta si el usuario está en ET para no mostrar "ET" redundante
+const IS_ET = USER_TZ === 'America/New_York' || USER_TZ === 'America/Detroit' ||
+              USER_TZ === 'America/Indiana/Indianapolis' || USER_TZ === 'America/Toronto';
+
+function fmtMatchTime(matchDate, kickoffET) {
+  if (!kickoffET) return { date: fmtDate(matchDate), time: '' };
+
+  // Construir fecha/hora en ET
+  // kickoffET es "HH:MM" en America/New_York
+  const [h, m] = kickoffET.split(':').map(Number);
+
+  // Crear el objeto Date en ET usando Intl — truco: instanciar en UTC
+  // y luego ajustar con el offset de ET en esa fecha
+  const etDate = new Date(`${matchDate}T${kickoffET}:00`);
+
+  // Obtener el offset ET en esa fecha (puede ser -5 o -4 por daylight saving)
+  const etOffset = getETOffset(etDate);
+
+  // Convertir a UTC
+  const utcMs = etDate.getTime() + etOffset * 60 * 60 * 1000;
+  const utcDate = new Date(utcMs);
+
+  // Formatear en la zona local del usuario
+  const localDate = utcDate.toLocaleDateString('es-PE', {
+    timeZone: USER_TZ,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
+
+  const localTime = utcDate.toLocaleTimeString('es-PE', {
+    timeZone: USER_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  // Abreviatura de la zona
+  const tzAbbr = getTzAbbr(utcDate, USER_TZ);
+
+  return {
+    date: localDate,
+    time: `${localTime} ${tzAbbr}`
+  };
+}
+
+// Offset de ET en horas (negativo) — maneja DST automáticamente
+function getETOffset(date) {
+  const etStr = date.toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' });
+  const match = etStr.match(/GMT([+-]\d+)/);
+  return match ? -parseInt(match[1]) : 5; // default -5 (EST)
+}
+
+// Abreviatura corta de la zona horaria del usuario
+function getTzAbbr(date, tz) {
+  try {
+    const str = date.toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' });
+    const parts = str.split(' ');
+    return parts[parts.length - 1]; // e.g. "ET", "PET", "CET", "JST"
+  } catch { return '' }
+}
+
 function fmtDate(dateStr) {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
 }
 
 function canPredict(m) {
@@ -755,10 +823,8 @@ function matchCardHTML(m) {
   const open = canPredict(m);
   const pts  = pred && done ? pred.points : null;
 
-  // Fecha y hora
-  const dateObj = new Date(m.match_date + 'T12:00:00');
-  const dateStr = dateObj.toLocaleDateString('es-PE', { weekday:'short', day:'numeric', month:'short' });
-  const timeStr = m.kickoff_time ? m.kickoff_time + ' ET' : '';
+  // Fecha y hora en zona local del usuario
+  const { date: dateStr, time: timeStr } = fmtMatchTime(m.match_date, m.kickoff_time);
 
   // Score
   let scoreHtml;
