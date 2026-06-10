@@ -37,10 +37,11 @@ export const handler = async (event) => {
 
   const supabase = getSupabase();
 
-  const path = event.path.replace(/.*\/admin/, '');
+  const rawPath = (event.rawUrl || event.path || '').toLowerCase();
+  const path = event.path.replace(/.*\/admin/, '') || '';
 
   // ── GET /admin/users ──────────────────────────────────────
-  if (path === '/users' && event.httpMethod === 'GET') {
+  if ((path === '/users' || rawPath.includes('/admin/users')) && event.httpMethod === 'GET') {
     const { data: users, error } = await supabase
       .from('users')
       .select('id, name, email, role, created_at')
@@ -68,7 +69,7 @@ export const handler = async (event) => {
   }
 
   // ── GET /admin/picks?user_id=xxx ──────────────────────────
-  if (path === '/picks' && event.httpMethod === 'GET') {
+  if ((path === '/picks' || rawPath.includes('/admin/picks')) && event.httpMethod === 'GET') {
     const { user_id } = event.queryStringParameters || {};
     if (!user_id) return cors({ error: 'Falta user_id' }, 400);
 
@@ -91,7 +92,7 @@ export const handler = async (event) => {
   }
 
   // ── PUT /admin/set-role ───────────────────────────────────
-  if (path === '/set-role' && event.httpMethod === 'PUT') {
+  if ((path === '/set-role' || rawPath.includes('/admin/set-role')) && event.httpMethod === 'PUT') {
     const { user_id, role } = JSON.parse(event.body || '{}');
     if (!user_id || !['user','admin'].includes(role)) return cors({ error: 'Datos inválidos' }, 400);
 
@@ -102,7 +103,7 @@ export const handler = async (event) => {
   }
 
   // ── POST /admin/reset-results ─────────────────────────────
-  if (path === '/reset-results' && event.httpMethod === 'POST') {
+  if ((path === '/reset-results' || rawPath.includes('reset-results')) && event.httpMethod === 'POST') {
     await supabase
       .from('matches')
       .update({ result_home: null, result_away: null, status: 'scheduled' })
