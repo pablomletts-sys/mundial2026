@@ -856,69 +856,58 @@ function getName(s) { return s.replace(/^\S+\s/, ''); }
 // ══════════════════════════════════════════════════════════════════
 // TIMEZONE — convierte horarios de ET a la zona del usuario
 // Los kickoff_time están guardados en ET (America/New_York)
+// Usamos Intl para manejar DST automáticamente — sin cálculos manuales
 // ══════════════════════════════════════════════════════════════════
 const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-// Detecta si el usuario está en ET para no mostrar "ET" redundante
-const IS_ET = USER_TZ === 'America/New_York' || USER_TZ === 'America/Detroit' ||
-              USER_TZ === 'America/Indiana/Indianapolis' || USER_TZ === 'America/Toronto';
 
 function fmtMatchTime(matchDate, kickoffET) {
   if (!kickoffET) return { date: fmtDate(matchDate), time: '' };
 
-  // Construir fecha/hora en ET
-  // kickoffET es "HH:MM" en America/New_York
-  const [h, m] = kickoffET.split(':').map(Number);
+  // Construir la fecha como si fuera ET usando Intl.DateTimeFormat al revés:
+  // Tomamos los componentes de fecha/hora y los interpretamos en America/New_York.
+  // La forma correcta en JS puro es crear la fecha "naive" y luego calcular
+  // cuánto difiere ET de UTC en ese momento específico.
 
-  // Crear el objeto Date en ET usando Intl — truco: instanciar en UTC
-  // y luego ajustar con el offset de ET en esa fecha
-  const etDate = new Date(`${matchDate}T${kickoffET}:00`);
+  // 1. Crear un Date provisional con los valores como si fueran UTC
+  const naive = new Date(`${matchDate}T${kickoffET}:00Z`);
 
-  // Obtener el offset ET en esa fecha (puede ser -5 o -4 por daylight saving)
-  const etOffset = getETOffset(etDate);
+  // 2. Formatear ese mismo instante en ET para ver qué hora muestra
+  const etParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(naive);
 
-  // Convertir a UTC
-  const utcMs = etDate.getTime() + etOffset * 60 * 60 * 1000;
-  const utcDate = new Date(utcMs);
+  const get = type => parseInt(etParts.find(p => p.type === type)?.value || '0');
+  const etH = get('hour'), etM = get('minute');
 
-  // Formatear en la zona local del usuario
+  // 3. La diferencia entre la hora naive (UTC) y la hora en ET nos da el offset
+  const [wantH, wantM] = kickoffET.split(':').map(Number);
+  const diffMin = (wantH * 60 + wantM) - (etH * 60 + etM);
+
+  // 4. Ajustar el Date para que represente el momento correcto en UTC
+  const utcDate = new Date(naive.getTime() + diffMin * 60 * 1000);
+
+  // 5. Formatear en zona local del usuario
   const localDate = utcDate.toLocaleDateString('es-PE', {
     timeZone: USER_TZ,
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short'
+    weekday: 'short', day: 'numeric', month: 'short'
   });
 
   const localTime = utcDate.toLocaleTimeString('es-PE', {
     timeZone: USER_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
+    hour: '2-digit', minute: '2-digit', hour12: false
   });
 
   // Abreviatura de la zona
-  const tzAbbr = getTzAbbr(utcDate, USER_TZ);
-
-  return {
-    date: localDate,
-    time: `${localTime} ${tzAbbr}`
-  };
-}
-
-// Offset de ET en horas (negativo) — maneja DST automáticamente
-function getETOffset(date) {
-  const etStr = date.toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' });
-  const match = etStr.match(/GMT([+-]\d+)/);
-  return match ? -parseInt(match[1]) : 5; // default -5 (EST)
-}
-
-// Abreviatura corta de la zona horaria del usuario
-function getTzAbbr(date, tz) {
+  let tzAbbr = '';
   try {
-    const str = date.toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' });
-    const parts = str.split(' ');
-    return parts[parts.length - 1]; // e.g. "ET", "PET", "CET", "JST"
-  } catch { return '' }
+    const str = utcDate.toLocaleString('en-US', { timeZone: USER_TZ, timeZoneName: 'short' });
+    tzAbbr = str.split(' ').pop();
+  } catch {}
+
+  return { date: localDate, time: `${localTime} ${tzAbbr}` };
 }
 
 function fmtDate(dateStr) {
