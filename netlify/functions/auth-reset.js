@@ -89,11 +89,14 @@ export const handler = async (event) => {
 
   try {
     const supabase = getSupabase();
-    const path = event.path.replace(/.*\/auth-reset/, '');
+    // Detectar la acción por la URL completa (el splat puede variar)
+    const rawPath = (event.rawUrl || event.path || '').toLowerCase();
+    const isRequest = rawPath.includes('reset-request') || rawPath.endsWith('/request');
+    const isConfirm = rawPath.includes('reset-confirm') || rawPath.endsWith('/confirm');
     const body = JSON.parse(event.body || '{}');
 
     // ── SOLICITAR RESET ────────────────────────────────────
-    if (path === '/request') {
+    if (isRequest) {
       const { email } = body;
       if (!email) return cors({ error: 'Ingresa tu email' }, 400);
 
@@ -117,7 +120,7 @@ export const handler = async (event) => {
     }
 
     // ── CONFIRMAR RESET ────────────────────────────────────
-    if (path === '/confirm') {
+    if (isConfirm) {
       const { token, password } = body;
       if (!token || !password) return cors({ error: 'Datos incompletos' }, 400);
       if (password.length < 6) return cors({ error: 'La contraseña debe tener al menos 6 caracteres' }, 400);
