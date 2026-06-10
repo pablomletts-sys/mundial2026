@@ -1,5 +1,6 @@
 import { getSupabase } from './_supabase.js';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const SITE_URL   = process.env.URL || 'https://bejewelled-gumdrop-a3424c.netlify.app';
@@ -17,11 +18,9 @@ function cors(body, status = 200) {
   };
 }
 
-// Generar token usando Web Crypto (disponible en Node 18+, sin imports)
+// Generar token seguro con node:crypto
 async function generateToken() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return randomBytes(32).toString('hex');
 }
 
 async function sendEmail(to, name, token) {
