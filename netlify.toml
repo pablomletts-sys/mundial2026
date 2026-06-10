@@ -10,6 +10,16 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/api/auth/reset-request"
+  to = "/.netlify/functions/auth-reset/request"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/reset-confirm"
+  to = "/.netlify/functions/auth-reset/confirm"
+  status = 200
+
+[[redirects]]
   from = "/api/auth/*"
   to = "/.netlify/functions/auth/:splat"
   status = 200
@@ -37,11 +47,6 @@
 [[redirects]]
   from = "/api/leaderboard"
   to = "/.netlify/functions/leaderboard"
-  status = 200
-
-[[redirects]]
-  from = "/api/odds"
-  to = "/.netlify/functions/odds"
   status = 200
 
 [[redirects]]
