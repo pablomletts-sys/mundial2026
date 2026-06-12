@@ -1821,9 +1821,9 @@ function renderAdmin(matches) {
     <div class="admin-match-row" id="ar${m.id}">
       <div style="font-size:12px;font-weight:600">${getFlag(m.home)} ${getName(m.home)}</div>
       <div class="score-wrap">
-        <input class="score-in" id="ah${m.id}" type="number" min="0" max="30" placeholder="0">
+        <input class="score-in" id="ah${m.id}" type="number" min="0" max="30" value="0">
         <span style="color:var(--chalk-dim);font-family:var(--mono)">–</span>
-        <input class="score-in" id="aa${m.id}" type="number" min="0" max="30" placeholder="0">
+        <input class="score-in" id="aa${m.id}" type="number" min="0" max="30" value="0">
       </div>
       <div style="font-size:12px;font-weight:600;text-align:right">${getName(m.away)} ${getFlag(m.away)}</div>
       <button class="save-result" onclick="saveResult(${m.id})">Registrar</button>
@@ -2103,9 +2103,11 @@ function doneRow(m) {
 }
 
 async function adminSaveResult(matchId) {
-  const h = parseInt(document.getElementById('ah' + matchId)?.value);
-  const a = parseInt(document.getElementById('aa' + matchId)?.value);
-  if (isNaN(h) || isNaN(a)) { toast('Ingresa el resultado ⚠️', true); return; }
+  const hEl = document.getElementById('ah' + matchId);
+  const aEl = document.getElementById('aa' + matchId);
+  const h = parseInt(hEl?.value !== '' ? hEl.value : '0');
+  const a = parseInt(aEl?.value !== '' ? aEl.value : '0');
+  if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { toast('Ingresa el resultado ⚠️', true); return; }
 
   try {
     await apiFetch('/matches/' + matchId, {
